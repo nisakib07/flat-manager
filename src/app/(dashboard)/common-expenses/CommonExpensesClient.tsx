@@ -1,173 +1,245 @@
 'use client'
 
-import { useState } from 'react'
-import { addCommonExpense, deleteCommonExpense } from '../actions'
+import { useState, useTransition } from 'react'
+import { addCommonExpense, deleteCommonExpense, updateCommonExpense } from '../actions'
 import type { CommonExpense } from '@/types/database'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import { Pencil, Trash2, Plus, Receipt } from 'lucide-react'
+
+interface UserSubset {
+    id: string;
+    name: string;
+}
 
 interface CommonExpensesClientProps {
   expenses: CommonExpense[]
   isAdmin: boolean
-  usersCount: number
+  users: UserSubset[]
 }
 
-export default function CommonExpensesClient({ expenses, isAdmin, usersCount }: CommonExpensesClientProps) {
+export default function CommonExpensesClient({ expenses, isAdmin, users }: CommonExpensesClientProps) {
+  const [isPending, startTransition] = useTransition()
   const [showForm, setShowForm] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [editingExpense, setEditingExpense] = useState<CommonExpense | null>(null)
+  
+  // Form State
+  const [formData, setFormData] = useState({
+      name: '',
+      cost: '',
+      month: new Date().toISOString().slice(0, 7) + '-01'
+  })
 
-  async function handleSubmit(formData: FormData) {
-    setLoading(true)
-    setError(null)
-    const result = await addCommonExpense(formData)
-    if (result?.error) {
-      setError(result.error)
-    } else {
-      setShowForm(false)
-    }
-    setLoading(false)
+  const openAddModal = () => {
+      setEditingExpense(null)
+      setFormData({
+          name: '',
+          cost: '',
+          month: new Date().toISOString().slice(0, 7) + '-01'
+      })
+      setShowForm(true)
+  }
+
+  const openEditModal = (expense: CommonExpense) => {
+      setEditingExpense(expense)
+      setFormData({
+          name: expense.expense_name,
+          cost: String(expense.total_cost),
+          month: expense.month
+      })
+      setShowForm(true)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    startTransition(async () => {
+        const data = new FormData()
+        data.append('expense_name', formData.name)
+        data.append('total_cost', formData.cost)
+        data.append('month', formData.month)
+
+        if (editingExpense) {
+            await updateCommonExpense(editingExpense.id, data)
+        } else {
+            await addCommonExpense(data)
+        }
+        setShowForm(false)
+    })
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this expense?')) return
-    await deleteCommonExpense(id)
+    startTransition(async () => {
+        await deleteCommonExpense(id)
+    })
   }
 
-  const currentMonth = new Date().toISOString().slice(0, 7) + '-01'
   const totalCost = expenses.reduce((sum, exp) => sum + Number(exp.total_cost), 0)
+  const perUserTotal = users.length > 0 ? totalCost / users.length : 0
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">Common Expenses</h1>
-          <p className="page-description">Shared items like handwash, detergent, etc.</p>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-teal-600 to-teal-400 bg-clip-text text-transparent">
+            Common Expenses
+          </h1>
+          <p className="text-muted-foreground mt-1">Shared items split equally among all flatmates.</p>
         </div>
         {isAdmin && (
-          <button onClick={() => setShowForm(!showForm)} className="btn btn-primary">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+          <Button onClick={openAddModal} className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Plus className="w-4 h-4 mr-2" />
             Add Expense
-          </button>
+          </Button>
         )}
       </div>
 
-      {/* Stats */}
-      <div className="card" style={{ background: 'var(--gradient-success)', border: 'none' }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-white/80 text-sm font-medium">Total Common Expenses</p>
-            <p className="text-3xl font-bold text-white">৳{totalCost.toLocaleString()}</p>
-          </div>
-          <div className="text-white/80 text-right">
-            <p className="text-sm">Per Person</p>
-            <p className="text-xl font-bold text-white">৳{usersCount > 0 ? (totalCost / usersCount).toFixed(2) : 0}</p>
-          </div>
-        </div>
-      </div>
+        <Card className="shadow-md border-teal-100 dark:border-teal-900/50 overflow-hidden">
+            <div className="overflow-x-auto">
+                <Table className="table-fixed">
+                    <TableHeader className="bg-teal-50/50 dark:bg-teal-950/20">
+                        <TableRow>
+                            <TableHead className="w-[180px] font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider">Item Description</TableHead>
+                            <TableHead className="w-[120px] !text-right font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider bg-teal-100/30 dark:bg-teal-900/10">Total Cost</TableHead>
+                            {users.map(user => (
+                                <TableHead key={user.id} className="!text-right font-bold text-teal-600 dark:text-teal-500 uppercase text-xs tracking-wider min-w-[100px]">
+                                    {user.name}
+                                </TableHead>
+                            ))}
+                            {isAdmin && <TableHead className="w-[100px] !text-center font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider">Actions</TableHead>}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {expenses.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={2 + users.length + (isAdmin ? 1 : 0)} className="h-24 text-center text-muted-foreground">
+                                    No common expenses added yet.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            expenses.map((expense) => (
+                                <TableRow key={expense.id} className="hover:bg-muted/50 transition-colors">
+                                    <TableCell className="font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-2 rounded-full bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400">
+                                                 <Receipt className="w-4 h-4" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span>{expense.expense_name}</span>
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    {new Date(expense.month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-right font-bold text-teal-600 dark:text-teal-400 bg-teal-50/30 dark:bg-teal-900/5">
+                                        ৳{expense.total_cost}
+                                    </TableCell>
+                                    {users.map(user => (
+                                        <TableCell key={user.id} className="text-right text-muted-foreground text-sm">
+                                            ৳{expense.user_share.toFixed(2)}
+                                        </TableCell>
+                                    ))}
+                                    {isAdmin && (
+                                        <TableCell className="text-center">
+                                            <div className="flex justify-center gap-1">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" onClick={() => openEditModal(expense)}>
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(expense.id)}>
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    )}
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                    <TableFooter className="bg-teal-50 dark:bg-teal-950/30 border-t-2 border-teal-100 dark:border-teal-900">
+                        <TableRow>
+                            <TableCell className="font-bold text-teal-800 dark:text-teal-200">Total</TableCell>
+                            <TableCell className="text-right font-black text-teal-700 dark:text-teal-300 text-lg">৳{totalCost.toLocaleString()}</TableCell>
+                            {users.map(user => (
+                                <TableCell key={user.id} className="text-right font-bold text-teal-600 dark:text-teal-400">
+                                    ৳{perUserTotal.toFixed(2)}
+                                </TableCell>
+                            ))}
+                            {isAdmin && <TableCell />}
+                        </TableRow>
+                    </TableFooter>
+                </Table>
+            </div>
+        </Card>
 
-      {/* Add Form */}
-      {showForm && (
-        <div className="card animate-fadeIn">
-          <h3 className="card-title mb-4">Add Common Expense</h3>
-          <form action={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="p-3 rounded-lg text-sm" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)' }}>
-                {error}
-              </div>
-            )}
-            
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                  Expense Name
-                </label>
-                <input type="text" name="expense_name" placeholder="e.g., Handwash, Detergent" required />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                  Total Cost (৳)
-                </label>
-                <input type="number" name="total_cost" step="0.01" placeholder="0.00" required />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-                  Month
-                </label>
-                <input type="date" name="month" defaultValue={currentMonth} required />
-              </div>
+      {/* Add/Edit Dialog */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingExpense ? 'Edit Expense' : 'Add Common Expense'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="grid gap-2">
+                <Label htmlFor="name">Item Description</Label>
+                <Input 
+                    id="name" 
+                    value={formData.name} 
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    placeholder="e.g. Handwash, WiFi Bill" 
+                    required 
+                />
             </div>
-            
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              The cost will be automatically split among {usersCount} flatmates
-            </p>
-            
-            <div className="flex gap-3">
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? 'Adding...' : 'Add Expense'}
-              </button>
-              <button type="button" onClick={() => setShowForm(false)} className="btn btn-secondary">
-                Cancel
-              </button>
+             <div className="grid gap-2">
+                <Label htmlFor="cost">Total Cost (৳)</Label>
+                <Input 
+                    id="cost" 
+                    type="number"
+                    step="0.01"
+                    value={formData.cost} 
+                    onChange={e => setFormData({...formData, cost: e.target.value})}
+                    placeholder="0.00" 
+                    required 
+                />
             </div>
+             <div className="grid gap-2">
+                <Label htmlFor="month">Month</Label>
+                <Input 
+                    id="month" 
+                    type="date"
+                    value={formData.month} 
+                    onChange={e => setFormData({...formData, month: e.target.value})}
+                    required 
+                />
+            </div>
+            <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+                <Button type="submit" disabled={isPending} className="bg-teal-600 hover:bg-teal-700 text-white">
+                    {isPending ? 'Saving...' : 'Save Expense'}
+                </Button>
+            </DialogFooter>
           </form>
-        </div>
-      )}
-
-      {/* Expenses Grid */}
-      <div className="card">
-        {expenses.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {expenses.map((expense) => (
-              <div
-                key={expense.id}
-                className="p-4 rounded-lg"
-                style={{ background: 'var(--background)', border: '1px solid var(--card-border)' }}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{expense.expense_name}</h4>
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                      {new Date(expense.month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleDelete(expense.id)}
-                      className="btn btn-ghost p-1"
-                      style={{ color: 'var(--danger)' }}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-                <div className="mt-3 flex items-end justify-between">
-                  <div>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Total</p>
-                    <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>৳{expense.total_cost}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Per Person</p>
-                    <p className="text-lg font-bold" style={{ color: 'var(--success)' }}>৳{expense.user_share}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <h3 className="text-lg font-semibold mt-4" style={{ color: 'var(--text-primary)' }}>No common expenses</h3>
-            <p style={{ color: 'var(--text-muted)' }}>Add shared items that will be split among flatmates</p>
-          </div>
-        )}
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

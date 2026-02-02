@@ -14,9 +14,10 @@ export default async function CommonExpensesPage() {
   
   const isAdmin = currentUser?.role === 'admin'
   
-  const { count: usersCount } = await supabase
+  const { data: users } = await supabase
     .from('users')
-    .select('*', { count: 'exact', head: true })
+    .select('id, name')
+    .order('name')
   
   const { data: expenses } = await supabase
     .from('common_expenses')
@@ -27,7 +28,7 @@ export default async function CommonExpensesPage() {
     <CommonExpensesClient 
       expenses={expenses || []} 
       isAdmin={isAdmin}
-      usersCount={usersCount || 0}
+      users={users || []}
     />
   )
 }

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import MealsClient from './MealsClient'
+import MonthlyMealGrid from './MonthlyMealGrid'
 
 export default async function MealsPage() {
   const supabase = await createClient()
@@ -21,17 +21,24 @@ export default async function MealsPage() {
     .select('*')
     .order('name')
   
-  // Fetch meal costs with user info
-  const { data: mealCosts } = await supabase
+  // Determine current month range
+  const today = new Date()
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
+
+  // Fetch meal costs for the current month
+  const { data: monthlyMealCosts } = await supabase
     .from('meal_costs')
     .select('*, user:users(name)')
-    .order('meal_date', { ascending: false })
-    .limit(100)
+    .gte('meal_date', startOfMonth)
+    .lte('meal_date', endOfMonth)
+    .order('meal_date', { ascending: true })
 
   return (
-    <MealsClient 
+    <MonthlyMealGrid 
       users={users || []} 
-      mealCosts={mealCosts || []} 
+      monthlyMealCosts={monthlyMealCosts || []} 
+      selectedDate={today.toISOString().split('T')[0]}
       isAdmin={isAdmin}
     />
   )

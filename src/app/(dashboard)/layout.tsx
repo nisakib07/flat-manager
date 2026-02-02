@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Header from '@/components/Header'
+import MobileNav from '@/components/MobileNav'
 import type { User } from '@/types/database'
 
 export default async function DashboardLayout({
@@ -23,11 +24,12 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--background)' }}>
+    <div className="min-h-screen bg-background text-foreground">
       <Header user={user} />
       <main className="container py-6">
         {children}
       </main>
+      <MobileNav user={user} />
     </div>
   )
 }

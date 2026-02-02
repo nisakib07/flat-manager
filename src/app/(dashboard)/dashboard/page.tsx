@@ -1,50 +1,79 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import MealTableClient from './MealTableClient'
+import MealCalculation from './MealCalculation'
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   
   const { data: { user: authUser } } = await supabase.auth.getUser()
   
+  // Today's date for meal table
+  const today = new Date().toISOString().split('T')[0]
+  
   // Fetch current month data
   const currentMonth = new Date().toISOString().slice(0, 7) + '-01'
   
-  // Fetch users count
-  const { count: usersCount } = await supabase
+  // Fetch current user's role
+  const { data: currentUser } = await supabase
     .from('users')
-    .select('*', { count: 'exact', head: true })
+    .select('role, name')
+    .eq('id', authUser?.id)
+    .single()
   
-  // Fetch this month's meal costs
-  const { data: mealCosts } = await supabase
+  const isAdmin = currentUser?.role === 'admin'
+  
+  // Fetch all users for meal table
+  const { data: users } = await supabase
+    .from('users')
+    .select('*')
+    .order('name')
+  
+  // Fetch meal types
+  const { data: mealTypes } = await supabase
+    .from('meal_types')
+    .select('*')
+    .order('name')
+  
+  // Fetch today's meal attendance
+  const { data: todayMeals } = await supabase
     .from('meal_costs')
-    .select('cost')
+    .select('*')
+    .eq('meal_date', today)
+  
+  // Fetch today's daily meal settings
+  const { data: dailyMeals } = await supabase
+    .from('daily_meals')
+    .select('*, meal_type:meal_types(*)')
+    .eq('meal_date', today)
+  
+  // Fetch this month's meal costs (full data for calculation)
+  const { data: monthlyMealCosts } = await supabase
+    .from('meal_costs')
+    .select('*')
     .gte('meal_date', currentMonth)
   
-  const totalMealCost = mealCosts?.reduce((sum, m) => sum + Number(m.cost), 0) || 0
-  
-  // Fetch this month's utility expenses
-  const { data: utilities } = await supabase
-    .from('utility_expenses')
-    .select('amount')
+  // Fetch this month's common expenses
+  const { data: commonExpenses } = await supabase
+    .from('common_expenses')
+    .select('*')
+    .gte('month', currentMonth)
+
+  // Fetch this month's meal deposits
+  const { data: mealDeposits } = await supabase
+    .from('meal_deposits')
+    .select('*')
     .eq('month', currentMonth)
-  
-  const totalUtilities = utilities?.reduce((sum, u) => sum + Number(u.amount), 0) || 0
-  
-  // Fetch this month's shopping
-  const { data: shopping } = await supabase
+
+  // Fetch this month's shopping (full data for calculation)
+  const { data: monthlyBajar } = await supabase
     .from('bajar_list')
-    .select('cost')
+    .select('*')
     .gte('purchase_date', currentMonth)
   
-  const totalShopping = shopping?.reduce((sum, s) => sum + Number(s.cost), 0) || 0
-  
-  // Fetch user's balance
-  const { data: balance } = await supabase
-    .from('monthly_balances')
-    .select('*')
-    .eq('user_id', authUser?.id)
-    .eq('month', currentMonth)
-    .single()
+  const totalShopping = monthlyBajar?.reduce((sum, s) => sum + Number(s.cost), 0) || 0
   
   // Recent shopping items
   const { data: recentShopping } = await supabase
@@ -52,130 +81,143 @@ export default async function DashboardPage() {
     .select('*, user:users(name)')
     .order('purchase_date', { ascending: false })
     .limit(5)
+
+  const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   
-  // Recent meals
-  const { data: recentMeals } = await supabase
-    .from('meal_costs')
-    .select('*, user:users(name)')
-    .order('meal_date', { ascending: false })
-    .limit(5)
-
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-8 animate-fadeIn pb-24 lg:pb-8">
       {/* Page Header */}
-      <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-description">Overview of your flat expenses for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+      <div className="mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          Welcome, {currentUser?.name || 'User'}! 👋
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Mess overview for {monthLabel}
+        </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid-stats">
-        <div className="stat-card">
-          <span className="stat-label">Total Flatmates</span>
-          <span className="stat-value">{usersCount || 0}</span>
-          <Link href="/users" className="text-sm" style={{ color: 'var(--primary)' }}>Manage users →</Link>
-        </div>
-        
-        <div className="stat-card">
-          <span className="stat-label">Meal Costs</span>
-          <span className="stat-value">৳{totalMealCost.toLocaleString()}</span>
-          <Link href="/meals" className="text-sm" style={{ color: 'var(--primary)' }}>View details →</Link>
-        </div>
-        
-        <div className="stat-card">
-          <span className="stat-label">Shopping</span>
-          <span className="stat-value">৳{totalShopping.toLocaleString()}</span>
-          <Link href="/shopping" className="text-sm" style={{ color: 'var(--primary)' }}>View list →</Link>
-        </div>
-        
-        <div className="stat-card">
-          <span className="stat-label">Utilities</span>
-          <span className="stat-value">৳{totalUtilities.toLocaleString()}</span>
-          <Link href="/utilities" className="text-sm" style={{ color: 'var(--primary)' }}>View details →</Link>
-        </div>
-      </div>
+      {/* Main Content Grid */}
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Left Column - Meal Table (spans 2 cols on large screens) */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Meal Table - Main Feature */}
+          <MealTableClient
+            users={users || []}
+            mealTypes={mealTypes || []}
+            todayMeals={todayMeals || []}
+            dailyMeals={dailyMeals || []}
+            selectedDate={today}
+            isAdmin={isAdmin}
+          />
 
-      {/* Balance Card */}
-      <div className="card" style={{ background: 'var(--gradient-primary)', border: 'none' }}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white/80">Your Balance</h3>
-            <p className="text-3xl font-bold text-white">
-              ৳{balance?.meal_balance?.toLocaleString() || '0'}
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link href="/deposits" className="btn" style={{ background: 'rgba(255,255,255,0.2)', color: 'white' }}>
-              Add Deposit
-            </Link>
-          </div>
+          {/* Meal Cost Calculation */}
+          <MealCalculation
+            users={users || []}
+            mealCosts={monthlyMealCosts || []}
+            bajarItems={monthlyBajar || []}
+            commonExpenses={commonExpenses || []}
+            mealDeposits={mealDeposits || []}
+            monthLabel={monthLabel}
+          />
         </div>
-      </div>
 
-      {/* Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Shopping */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Recent Shopping</h3>
-            <Link href="/shopping" className="text-sm font-medium" style={{ color: 'var(--primary)' }}>View all</Link>
-          </div>
-          
-          {recentShopping && recentShopping.length > 0 ? (
-            <div className="space-y-3">
-              {recentShopping.map((item) => (
-                <div key={item.id} className="flex items-center justify-between py-2" style={{ borderBottom: '1px solid var(--card-border)' }}>
-                  <div>
-                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{item.item_name}</p>
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                      {(item.user as { name: string })?.name || 'Unknown'} • {new Date(item.purchase_date).toLocaleDateString()}
-                    </p>
+        {/* Right Column - Sidebar */}
+        <div className="space-y-6">
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <span className="text-xl">⚡</span> Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 px-4 justify-start gap-4 hover:bg-primary/5 hover:border-primary/30 group transition-all"
+                asChild
+              >
+                <Link href="/shopping">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">🛒</div>
+                  <div className="text-left">
+                    <div className="font-semibold">Add Shopping</div>
+                    <div className="text-muted-foreground text-xs">
+                      Total: ৳{totalShopping.toLocaleString()}
+                    </div>
                   </div>
-                  <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>৳{item.cost}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state py-8">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <p>No shopping items yet</p>
-            </div>
-          )}
-        </div>
-
-        {/* Recent Meals */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Recent Meals</h3>
-            <Link href="/meals" className="text-sm font-medium" style={{ color: 'var(--primary)' }}>View all</Link>
-          </div>
-          
-          {recentMeals && recentMeals.length > 0 ? (
-            <div className="space-y-3">
-              {recentMeals.map((meal) => (
-                <div key={meal.id} className="flex items-center justify-between py-2" style={{ borderBottom: '1px solid var(--card-border)' }}>
-                  <div>
-                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                      {meal.meal_type} - {(meal.user as { name: string })?.name || 'Unknown'}
-                    </p>
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                      {new Date(meal.meal_date).toLocaleDateString()} • Weight: {meal.meal_weight}
-                    </p>
+                </Link>
+              </Button>
+              
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 px-4 justify-start gap-4 hover:bg-primary/5 hover:border-primary/30 group transition-all"
+                asChild
+              >
+                <Link href="/deposits">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">💰</div>
+                  <div className="text-left">
+                    <div className="font-semibold">Make Deposit</div>
+                    <div className="text-muted-foreground text-xs">Add funds</div>
                   </div>
-                  <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>৳{meal.cost}</span>
+                </Link>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 px-4 justify-start gap-4 hover:bg-primary/5 hover:border-primary/30 group transition-all"
+                asChild
+              >
+                <Link href="/users">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">👥</div>
+                  <div className="text-left">
+                    <div className="font-semibold">Members</div>
+                    <div className="text-muted-foreground text-xs">
+                      {users?.length || 0} flatmates
+                    </div>
+                  </div>
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Recent Shopping */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <span className="text-xl">🛍️</span> Recent Shopping
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="text-primary text-xs" asChild>
+                <Link href="/shopping">See All</Link>
+              </Button>
+            </CardHeader>
+            
+            <CardContent>
+              {recentShopping && recentShopping.length > 0 ? (
+                <div className="space-y-3">
+                  {recentShopping.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <p className="font-medium text-sm leading-none truncate">
+                          {item.item_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {(item.user as { name: string })?.name} • {new Date(item.purchase_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                        </p>
+                      </div>
+                      <span className="font-bold text-sm text-primary ml-3 whitespace-nowrap">৳{item.cost}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state py-8">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <p>No meals recorded yet</p>
-            </div>
-          )}
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <span className="text-3xl mb-2">🛒</span>
+                  <p className="text-sm">No shopping items yet</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

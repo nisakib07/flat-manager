@@ -14,7 +14,10 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
   const [loading, setLoading] = useState<string | null>(null)
 
   async function handleRoleChange(userId: string, newRole: 'admin' | 'viewer') {
-    if (!confirm(`Are you sure you want to make this user ${newRole}?`)) return
+    if (!confirm(newRole === 'admin' 
+      ? 'Are you sure you want to promote this user to admin?' 
+      : 'Are you sure you want to remove admin role?')) return
+    
     setLoading(userId)
     await updateUserRole(userId, newRole)
     setLoading(null)
@@ -25,8 +28,8 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="page-header">
-        <h1 className="page-title">User Management</h1>
-        <p className="page-description">Manage flatmates and admin roles</p>
+        <h1 className="page-title">👥 Member Management</h1>
+        <p className="page-description">Manage members and admin roles</p>
       </div>
 
       {/* Info Card */}
@@ -38,8 +41,8 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
           <div>
             <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Admin Role</h3>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-              The admin has full control over all features. Currently, <strong>{currentAdmin?.name || 'No admin'}</strong> is the admin.
-              The admin role can be transferred to another user at the start of each month.
+              Admins have full control over all features. Currently, <strong>{currentAdmin?.name || 'No Admin'}</strong> is the Admin.
+              Admin role can be changed at any time.
             </p>
           </div>
         </div>
@@ -71,7 +74,7 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
             
             <div className="mt-4 pt-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--card-border)' }}>
               <span className={`badge ${user.role === 'admin' ? 'badge-primary' : 'badge-success'}`}>
-                {user.role === 'admin' ? '👑 Admin' : 'Viewer'}
+                {user.role === 'admin' ? '👑 Admin' : 'Member'}
               </span>
               
               {isAdmin && user.id !== currentUserId && (
@@ -86,7 +89,7 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
             </div>
             
             <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-              Joined {new Date(user.created_at).toLocaleDateString()}
+              Joined: {new Date(user.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
           </div>
         ))}
@@ -98,8 +101,8 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
             <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <h3 className="text-lg font-semibold mt-4" style={{ color: 'var(--text-primary)' }}>No users yet</h3>
-            <p style={{ color: 'var(--text-muted)' }}>Users will appear here once they sign up</p>
+            <h3 className="text-lg font-semibold mt-4" style={{ color: 'var(--text-primary)' }}>No members found</h3>
+            <p style={{ color: 'var(--text-muted)' }}>Members will appear here after signing up</p>
           </div>
         </div>
       )}

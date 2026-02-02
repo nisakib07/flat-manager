@@ -13,7 +13,14 @@ export interface MealDeposit {
   id: string
   user_id: string
   month: string
-  deposit: number
+  d1: number
+  d2: number
+  d3: number
+  d4: number
+  d5: number
+  d6: number
+  d7: number
+  d8: number
   carry_forward: number
   created_at: string
 }
@@ -67,6 +74,31 @@ export interface MonthlyBalance {
   user?: User
 }
 
+export interface MealTypeItem {
+  id: string
+  name: string
+  weight: number
+  created_at: string
+}
+
+export interface DailyMeal {
+  id: string
+  meal_date: string
+  meal_time: 'Lunch' | 'Dinner'
+  meal_type_id: string | null
+  created_at: string
+  meal_type?: MealTypeItem
+}
+
+export interface UtilityCollection {
+  id: string
+  month: string
+  utility_type: string
+  user_id: string
+  amount: number
+  created_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -89,6 +121,11 @@ export interface Database {
         Row: UtilityExpense
         Insert: Omit<UtilityExpense, 'id' | 'created_at'>
         Update: Partial<Omit<UtilityExpense, 'id' | 'created_at'>>
+      }
+      utility_collections: {
+        Row: UtilityCollection
+        Insert: Omit<UtilityCollection, 'id' | 'created_at'>
+        Update: Partial<Omit<UtilityCollection, 'id' | 'created_at'>>
       }
       common_expenses: {
         Row: CommonExpense
