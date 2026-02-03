@@ -267,7 +267,7 @@ export default function MonthlyMealGrid({
 
       <Card className="shadow-md border-muted/60 bg-transparent sm:bg-card border-none sm:border">
         {/* Desktop Table View */}
-        <div className="overflow-x-auto relative hidden md:block">
+        <div className="overflow-x-auto relative">
           <Table className="relative border-separate border-spacing-0">
             <TableHeader className="sticky top-0 z-20 bg-background shadow-md">
               <TableRow className="bg-teal-50/80 dark:bg-teal-950/40 hover:bg-teal-50/80 dark:hover:bg-teal-900/40 border-b-2 border-teal-100 dark:border-teal-900">
@@ -380,89 +380,7 @@ export default function MonthlyMealGrid({
           </Table>
         </div>
 
-        {/* Mobile Card Layout */}
-        <div className="md:hidden space-y-4">
-             {days.slice().reverse().map(day => { // Show newest first on mobile
-                  const dateObj = new Date(day)
-                  const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
-                  const isToday = day === new Date().toISOString().split('T')[0]
-                  
-                  // Only show days with meals or today/future on mobile to save scroll? 
-                  // No, show all for now but maybe collapsible.
-                  // Just standard list for now.
-                  
-                  return (
-                    <Card key={day} className={cn(
-                        "overflow-hidden border transition-shadow",
-                        isToday ? "border-teal-400 dark:border-teal-700 ring-1 ring-teal-400/30" : "border-border/60"
-                    )}>
-                        <div className={cn(
-                            "px-4 py-2 text-sm font-bold flex justify-between items-center border-b",
-                            isToday ? "bg-teal-50 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200" : "bg-muted/30"
-                        )}>
-                            <span>{dayName}</span>
-                            {isToday && <Badge variant="secondary" className="text-teal-700 bg-teal-100 text-[10px] h-5">Today</Badge>}
-                        </div>
-                        <div className="p-3 grid grid-cols-1 gap-2">
-                             {users.map(user => {
-                                  const lunch = getUserMeal(user.id, day, 'Lunch')
-                                  const dinner = getUserMeal(user.id, day, 'Dinner')
-                                  const lunchWeight = lunch ? Number(lunch.meal_weight) : 0
-                                  const dinnerWeight = dinner ? Number(dinner.meal_weight) : 0
-                                  
-                                  if (lunchWeight === 0 && dinnerWeight === 0) return null // Hide users with no meals on that day to condensed view
-                                  
-                                  return (
-                                    <div key={user.id} className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/40 shadow-sm">
-                                        <span className="text-sm font-medium">{user.name}</span>
-                                        <div className="flex gap-2">
-                                            {lunchWeight > 0 && (
-                                                <div 
-                                                    onClick={() => openEditModal(user.id, day, 'Lunch')}
-                                                    className="flex items-center gap-1 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-md text-xs font-bold border border-teal-100 dark:border-teal-800 cursor-pointer active:scale-95 transition-transform"
-                                                >
-                                                    <Sun className="w-3 h-3" /> {lunchWeight}
-                                                </div>
-                                            )}
-                                            {dinnerWeight > 0 && (
-                                                <div 
-                                                    onClick={() => openEditModal(user.id, day, 'Dinner')}
-                                                    className="flex items-center gap-1 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-md text-xs font-bold border border-orange-100 dark:border-orange-800 cursor-pointer active:scale-95 transition-transform"
-                                                >
-                                                    <Moon className="w-3 h-3" /> {dinnerWeight}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                  )
-                             })}
-                             
-                             {/* Show 'No meals' if everyone empty */}
-                             {users.every(u => !getUserMeal(u.id, day, 'Lunch') && !getUserMeal(u.id, day, 'Dinner')) && (
-                                 <div className="text-center py-4 text-muted-foreground text-xs italic">
-                                     No meals recorded for this day.
-                                     {isAdmin && <Button variant="link" size="sm" className="h-auto p-0 ml-1 text-xs" onClick={() => openEditModal(users[0].id, day, 'Lunch')}>Add Entry</Button>}
-                                 </div>
-                             )}
-                        </div>
-                         {/* Admin Quick Add Footer */}
-                         {isAdmin && (
-                             <div className="px-3 py-2 bg-muted/10 border-t flex gap-2 overflow-x-auto">
-                                 {users.map(u => (
-                                     <button 
-                                        key={u.id}
-                                        onClick={() => openEditModal(u.id, day, 'Lunch')}
-                                        className="shrink-0 text-[10px] px-2 py-1 rounded-full bg-background border hover:bg-muted transition-colors whitespace-nowrap"
-                                     >
-                                        + {u.name}
-                                     </button>
-                                 ))}
-                             </div>
-                         )}
-                    </Card>
-                  )
-             })}
-        </div>
+
       </Card>
 
       {/* Helper Legend */}
