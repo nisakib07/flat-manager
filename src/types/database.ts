@@ -51,6 +51,10 @@ export interface CommonExpense {
   user_share: number
   month: string
   created_at: string
+  shopper_id?: string | null
+  auto_deposit_amount?: number
+  auto_deposit_slot?: string | null
+  payment_preference?: 'deposit' | 'payback'
 }
 
 export interface BajarItem {

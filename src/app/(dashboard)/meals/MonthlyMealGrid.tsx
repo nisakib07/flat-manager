@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useOptimistic, useMemo } from 'react'
+import { useState, useTransition, useOptimistic, useMemo, useRef, useEffect } from 'react'
 import {
   addMealWithWeight,
   updateMealWeight,
@@ -16,12 +16,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,11 +29,13 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Utensils, Moon, Sun, CalendarDays } from 'lucide-react'
+import MonthSelector from '@/components/MonthSelector'
 
 interface MonthlyMealGridProps {
   users: User[]
   monthlyMealCosts: MealCost[]
   selectedDate: string
+  selectedMonth: string
   isAdmin: boolean
 }
 
@@ -54,6 +56,7 @@ export default function MonthlyMealGrid({
   users,
   monthlyMealCosts,
   selectedDate,
+  selectedMonth,
   isAdmin
 }: MonthlyMealGridProps) {
   const [isPending, startTransition] = useTransition()
@@ -117,6 +120,21 @@ export default function MonthlyMealGrid({
   }
 
   const days = getDaysInMonth(selectedDate)
+  const today = new Date().toISOString().split('T')[0]
+  const tableContainerRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to today's row on mount (only if today is in view)
+  useEffect(() => {
+    if (!tableContainerRef.current) return
+    
+    const todayRow = tableContainerRef.current.querySelector(`[data-date="${today}"]`)
+    if (todayRow) {
+      // Wait for layout, then scroll
+      setTimeout(() => {
+        todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [today])
 
   // Get user's meal for a specific date and time - O(1) lookup
   const getUserMeal = (userId: string, date: string, mealTime: 'Lunch' | 'Dinner'): MealCost | undefined => {
@@ -220,7 +238,7 @@ export default function MonthlyMealGrid({
   const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || ''
 
   // Current month label
-  const monthLabel = new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  // const monthLabel = new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   // Calculate totals - USE OPTIMISTIC DATA
   const totalLunch = optimisticMeals.filter(m => m.meal_type === 'Lunch').reduce((sum, m) => sum + Number(m.meal_weight), 0)
@@ -228,45 +246,42 @@ export default function MonthlyMealGrid({
   const totalMeals = totalLunch + totalDinner
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 pb-20">
 
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header Section - Unified Layout */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-teal-600 to-teal-400 bg-clip-text text-transparent">
-            {monthLabel}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Overview of all meals consumed this month.
-          </p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Meals</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Monthly overview</p>
         </div>
+        <MonthSelector selectedMonth={selectedMonth} />
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-3">
-            <Card className="p-3 shadow-sm border bg-white dark:bg-teal-950/20 border-teal-100 dark:border-teal-900/50">
-                <div className="flex flex-col items-center">
-                    <span className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">Lunch</span>
-                    <span className="text-2xl font-black text-teal-600 dark:text-teal-400">{totalLunch}</span>
-                </div>
-            </Card>
-            <Card className="p-3 shadow-sm border bg-white dark:bg-orange-950/20 border-orange-100 dark:border-orange-900/50">
-                <div className="flex flex-col items-center">
-                    <span className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Dinner</span>
-                    <span className="text-2xl font-black text-orange-600 dark:text-orange-400">{totalDinner}</span>
-                </div>
-            </Card>
-             <Card className="p-3 shadow-sm border bg-white dark:bg-cyan-950/20 border-cyan-100 dark:border-cyan-900/50">
-                <div className="flex flex-col items-center">
-                    <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">Total</span>
-                    <span className="text-2xl font-black text-cyan-600 dark:text-cyan-400">{totalMeals}</span>
-                </div>
-            </Card>
-        </div>
+      {/* Stats Cards - Compact Row */}
+      <div className="grid grid-cols-3 gap-2">
+        <Card className="p-2.5 sm:p-3 shadow-sm border bg-white dark:bg-teal-950/20 border-teal-100 dark:border-teal-900/50">
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] sm:text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">Lunch</span>
+            <span className="text-xl sm:text-2xl font-black text-teal-600 dark:text-teal-400">{totalLunch}</span>
+          </div>
+        </Card>
+        <Card className="p-2.5 sm:p-3 shadow-sm border bg-white dark:bg-orange-950/20 border-orange-100 dark:border-orange-900/50">
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] sm:text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Dinner</span>
+            <span className="text-xl sm:text-2xl font-black text-orange-600 dark:text-orange-400">{totalDinner}</span>
+          </div>
+        </Card>
+        <Card className="p-2.5 sm:p-3 shadow-sm border bg-white dark:bg-cyan-950/20 border-cyan-100 dark:border-cyan-900/50">
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] sm:text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">Total</span>
+            <span className="text-xl sm:text-2xl font-black text-cyan-600 dark:text-cyan-400">{totalMeals}</span>
+          </div>
+        </Card>
       </div>
 
       <Card className="shadow-md border-muted/60 bg-transparent sm:bg-card border-none sm:border">
         {/* Desktop Table View */}
-        <div className="overflow-x-auto relative border rounded-md bg-background scrollbar-thin scrollbar-thumb-teal-200 dark:scrollbar-thumb-teal-800">
+        <div ref={tableContainerRef} className="overflow-x-auto overflow-y-auto relative border rounded-md bg-background scrollbar-thin scrollbar-thumb-teal-200 dark:scrollbar-thumb-teal-800 max-h-[70vh] sm:max-h-none">
           <table className="relative border-separate border-spacing-0 w-full text-sm">
             <TableHeader className="bg-background">
               <TableRow className="bg-teal-50/80 dark:bg-teal-950/40 hover:bg-teal-50/80 dark:hover:bg-teal-900/40 border-b-2 border-teal-100 dark:border-teal-900">
@@ -290,7 +305,7 @@ export default function MonthlyMealGrid({
                   const isToday = day === new Date().toISOString().split('T')[0]
                   
                   return (
-                    <TableRow key={day} className={cn(
+                    <TableRow key={day} data-date={day} className={cn(
                         "transition-colors hover:bg-teal-50/30 dark:hover:bg-teal-900/20",
                         isToday && "bg-teal-100/40 dark:bg-teal-900/40 hover:bg-teal-100/60 dark:hover:bg-teal-900/60"
                     )}>
@@ -393,102 +408,98 @@ export default function MonthlyMealGrid({
          </div>
       </div>
 
-      {/* Edit Modal (Dialog) */}
-      <Dialog open={!!editingMeal} onOpenChange={(open) => !open && setEditingMeal(null)}>
-        <DialogContent className="sm:max-w-[360px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+      {/* Edit Meal Sheet */}
+      <Sheet open={!!editingMeal} onOpenChange={(open) => !open && setEditingMeal(null)}>
+        <SheetContent side="responsive" className="h-auto overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="flex items-center gap-2">
                 {editingMeal?.mealTime === 'Lunch' ? <Sun className="w-5 h-5 text-teal-500" /> : <Moon className="w-5 h-5 text-orange-500" />}
-                <span>
-                 {editingMeal && `${getUserName(editingMeal.userId)}`}
-                </span>
-            </DialogTitle>
-            <CardDescription>
-                {editingMeal && new Date(editingMeal.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </CardDescription>
-          </DialogHeader>
-
-          <div className="grid gap-6 py-4">
-            <div className="flex flex-col items-center gap-4">
-                <Label htmlFor="weight" className="text-muted-foreground uppercase text-xs tracking-wider">Meal Weight</Label>
-                <div className="flex items-center gap-4">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-10 w-10 rounded-full"
-                        onClick={() => {
-                            const val = parseFloat(customWeight) || 0;
-                            setCustomWeight(String(Math.max(0, val - 0.5)));
-                        }}
-                    >
-                        -
-                    </Button>
-                    <Input
-                        id="weight"
-                        type="number"
-                        value={customWeight}
-                        onChange={(e) => setCustomWeight(e.target.value)}
-                        min="0"
-                        step="0.5"
-                        className="text-center text-3xl h-16 w-24 border-none shadow-none focus-visible:ring-0 font-bold"
-                        autoFocus
-                    />
-                     <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-10 w-10 rounded-full"
-                        onClick={() => {
-                            const val = parseFloat(customWeight) || 0;
-                            setCustomWeight(String(val + 0.5));
-                        }}
-                    >
-                        +
-                    </Button>
+                Edit Meal Weight
+            </SheetTitle>
+          </SheetHeader>
+          
+          <div className="space-y-4">
+             <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
+                <div>
+                   <p className="font-semibold text-sm text-foreground">{editingMeal && users.find(u => u.id === editingMeal.userId)?.name}</p>
+                   <p className="text-xs text-muted-foreground">{editingMeal?.date} • {editingMeal?.mealTime}</p>
                 </div>
-                <p className="text-xs text-muted-foreground text-center max-w-[200px]">
-                    0 to skip. 1 for standard. Increase for guests.
-                </p>
-            </div>
+                <Badge variant={editingMeal?.isNew ? "outline" : "default"}>
+                   {editingMeal?.isNew ? 'New Entry' : 'Existing'}
+                </Badge>
+             </div>
+             
+             <div className="space-y-3">
+               <Label>Select Weight</Label>
+               <div className="grid grid-cols-4 gap-2">
+                 {[0, 0.5, 1, 1.5, 2].map(w => (
+                   <Button
+                     key={w}
+                     type="button"
+                     variant={customWeight === String(w) ? "default" : "outline"}
+                     className={cn(
+                        "h-10",
+                        customWeight === String(w) && "bg-teal-600 hover:bg-teal-700"
+                     )}
+                     onClick={() => setCustomWeight(String(w))}
+                   >
+                     {w}
+                   </Button>
+                 ))}
+               </div>
+               
+               <div className="pt-2">
+                 <Label htmlFor="custom-weight" className="text-xs text-muted-foreground mb-1 block">Custom Weight</Label>
+                 <Input 
+                   id="custom-weight"
+                   type="number" 
+                   step="0.1" 
+                   min="0"
+                   placeholder="Enter custom weight..."
+                   value={customWeight}
+                   onChange={(e) => setCustomWeight(e.target.value)}
+                   className="text-lg font-medium"
+                 />
+               </div>
+             </div>
+             
+             {/* Optimization Hint */}
+             <p className="text-[10px] text-muted-foreground text-center">
+                Updates will reflect immediately (Optimistic UI)
+             </p>
+
+            <SheetFooter className="flex-row gap-3 sm:justify-end mt-4">
+               {editingMeal && !editingMeal.isNew && (
+                 <Button 
+                   type="button" 
+                   variant="destructive" 
+                   onClick={handleDeleteMeal}
+                   disabled={isPending}
+                   className="flex-1 sm:flex-none"
+                 >
+                   Delete
+                 </Button>
+               )}
+               <Button 
+                 type="button" 
+                 variant="outline" 
+                 onClick={() => setEditingMeal(null)}
+                 className="flex-1 sm:flex-none"
+               >
+                 Cancel
+               </Button>
+               <Button 
+                 type="button" 
+                 onClick={handleSaveMeal}
+                 disabled={isPending}
+                 className={editingMeal?.mealTime === 'Lunch' ? "bg-teal-600 hover:bg-teal-700 text-white flex-1 sm:flex-none" : "bg-orange-600 hover:bg-orange-700 text-white flex-1 sm:flex-none"}
+               >
+                 {isPending ? 'Saving...' : 'Save Changes'}
+               </Button>
+            </SheetFooter>
           </div>
-
-          <DialogFooter className="flex gap-2 sm:justify-between">
-             {!editingMeal?.isNew && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDeleteMeal}
-                disabled={isPending}
-                className="w-auto px-3"
-                title="Remove Entry"
-              >
-                <span className="sr-only">Delete</span>
-                🗑️
-              </Button>
-            )}
-
-            {editingMeal?.isNew ? (
-                <Button
-                    variant="ghost"
-                    onClick={handleSkipMeal}
-                    disabled={isPending}
-                    type="button"
-                    className="text-muted-foreground hover:text-foreground"
-                >
-                    Skip (0)
-                </Button>
-            ) : <div />}
-
-            <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setEditingMeal(null)}>
-                Cancel
-                </Button>
-                <Button onClick={handleSaveMeal} disabled={isPending} className={editingMeal?.mealTime === 'Lunch' ? "bg-teal-600 hover:bg-teal-700" : "bg-orange-600 hover:bg-orange-700"}>
-                {isPending ? 'Saving...' : 'Save'}
-                </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

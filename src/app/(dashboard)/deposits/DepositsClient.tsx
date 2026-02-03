@@ -16,18 +16,20 @@ import {
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import MonthSelector from '@/components/MonthSelector'
 
 interface DepositsClientProps {
   users: User[]
   deposits: (MealDeposit & { user?: { name: string } })[]
   isAdmin: boolean
   currentUserId: string
+  selectedMonth: string
 }
 
-export default function DepositsClient({ users, deposits, isAdmin, currentUserId }: DepositsClientProps) {
+export default function DepositsClient({ users, deposits, isAdmin, currentUserId, selectedMonth }: DepositsClientProps) {
   const [isPending, startTransition] = useTransition()
-  const currentMonth = new Date().toISOString().slice(0, 7) + '-01'
-  const monthLabel = new Date(currentMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  // const monthLabel = new Date(selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  // Month label handled by selector now
   
   // Calculate Grand Total
   const totalDeposits = deposits.reduce((sum, d) => {
@@ -56,7 +58,7 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
     // We only execute if value changed? (Optimization left for later)
     
     startTransition(async () => {
-        await updateDepositSlot(userId, currentMonth, field, Number(value) || 0)
+        await updateDepositSlot(userId, selectedMonth, field, Number(value) || 0)
     })
   }
   
@@ -78,34 +80,36 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4 animate-fadeIn pb-20">
+      {/* Header - Unified Layout */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-teal-600 to-teal-400 bg-clip-text text-transparent">
-            Meal Deposits
-          </h1>
-          <p className="text-muted-foreground mt-1">Manage deposits for {monthLabel}.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">💰 Deposits</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Meal deposits</p>
         </div>
-        <div className="bg-teal-50 dark:bg-teal-900/30 px-4 py-2 rounded-lg border border-teal-100 dark:border-teal-800">
-             <span className="text-sm font-semibold text-teal-700 dark:text-teal-300 uppercase tracking-wider mr-2">Total Collected</span>
-             <span className="text-2xl font-black text-teal-900 dark:text-teal-100">৳{totalDeposits.toLocaleString()}</span>
-        </div>
+        <MonthSelector selectedMonth={selectedMonth} />
+      </div>
+      
+      {/* Total Collected Badge */}
+      <div className="flex items-center gap-3 bg-teal-50 dark:bg-teal-900/30 px-4 py-2.5 rounded-lg border border-teal-100 dark:border-teal-800">
+        <span className="text-sm font-medium text-teal-700 dark:text-teal-300">Total Collected</span>
+        <span className="text-lg font-black text-teal-900 dark:text-teal-100">৳{totalDeposits.toLocaleString()}</span>
       </div>
 
       <Card className="shadow-md border-teal-100 dark:border-teal-900/50 bg-transparent sm:bg-card border-none sm:border">
         {/* Desktop Table View */}
-        <div className="overflow-x-auto hidden md:block">
-          <Table className="min-w-[1200px]">
-            <TableHeader className="bg-teal-50/50 dark:bg-teal-950/20">
+        <div className="hidden sm:block overflow-x-auto overflow-y-auto max-h-[70vh] sm:max-h-none">
+          <Table className="min-w-[900px]">
+            <TableHeader className="bg-teal-50/50 dark:bg-teal-950/20 sticky top-0 z-20">
               <TableRow>
                 <TableHead className="w-[150px] font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider sticky left-0 bg-white dark:bg-slate-950 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)]">Name</TableHead>
-                <TableHead className="text-center w-[100px] font-bold text-orange-600 dark:text-orange-400 uppercase text-xs tracking-wider bg-orange-50/50 dark:bg-orange-900/10">C/F</TableHead>
+                <TableHead className="text-center w-[118px] font-bold text-orange-600 dark:text-orange-400 uppercase text-xs tracking-wider bg-orange-50/50 dark:bg-orange-900/10">C/F</TableHead>
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                  <TableHead key={i} className="text-center w-[100px] font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider">
+                  <TableHead key={i} className="text-center w-[118px] font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider">
                     D{i}
                   </TableHead>
                 ))}
-                <TableHead className="text-right w-[120px] font-bold text-teal-900 dark:text-teal-100 uppercase text-xs tracking-wider bg-teal-100/30 dark:bg-teal-900/10 sticky right-0">Total</TableHead>
+                <TableHead className="text-right w-[125px] font-bold text-teal-900 dark:text-teal-100 uppercase text-xs tracking-wider bg-teal-100/30 dark:bg-teal-900/10">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -114,11 +118,11 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
                 const canEdit = isAdmin; 
 
                 return (
-                  <TableRow key={user.id} className="hover:bg-muted/50">
+                  <TableRow key={`${user.id}-${selectedMonth}`} className="hover:bg-muted/50">
                     <TableCell className="font-medium sticky left-0 bg-white dark:bg-slate-950 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)]">
                         {user.name}
                     </TableCell>
-                    <TableCell className="p-1 bg-orange-50/10 dark:bg-orange-900/5">
+                    <TableCell className="p-1.5 bg-orange-50/10 dark:bg-orange-900/5">
                         <Input 
                             type="number"
                             min="0"
@@ -126,7 +130,7 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
                             disabled={!canEdit}
                             defaultValue={deposit?.carry_forward || ''}
                             placeholder="0"
-                            className="text-center h-8 border-orange-100 focus-visible:ring-orange-400 bg-transparent font-medium text-orange-700 dark:text-orange-400"
+                            className="text-center h-10 w-full min-w-[82px] border-orange-100 focus-visible:ring-orange-400 bg-transparent font-medium text-orange-700 dark:text-orange-400"
                             onBlur={(e) => handleUpdate(user.id, 'carry_forward', e.target.value)}
                         />
                     </TableCell>
@@ -135,12 +139,12 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
                         // @ts-ignore
                         const val = deposit?.[key] as number;
                         return (
-                            <TableCell key={i} className="p-1">
+                            <TableCell key={i} className="p-1.5">
                                 <Input 
                                     type="number"
                                     min="0"
                                     step="1"
-                                    className="text-center h-8 border-transparent hover:border-teal-100 focus:border-teal-400 focus-visible:ring-teal-400 bg-transparent"
+                                    className="text-center h-10 w-full border-transparent hover:border-teal-100 focus:border-teal-400 focus-visible:ring-teal-400 bg-transparent"
                                     placeholder="-"
                                     disabled={!canEdit}
                                     defaultValue={val || ''}
@@ -149,7 +153,7 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
                             </TableCell>
                         )
                     })}
-                    <TableCell className="text-right font-black text-teal-700 dark:text-teal-300 bg-teal-50/30 dark:bg-teal-900/5 sticky right-0">
+                    <TableCell className="text-right font-black text-teal-700 dark:text-teal-300 bg-teal-50/30 dark:bg-teal-900/5 px-3 py-2 text-base">
                         ৳{getRowTotal(user.id).toLocaleString()}
                     </TableCell>
                   </TableRow>
@@ -160,64 +164,63 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
         </div>
 
         {/* Mobile Card View */}
-        <div className="md:hidden space-y-4">
-             {users.map((user) => {
-                const deposit = deposits.find(d => d.user_id === user.id)
-                const canEdit = isAdmin;
-                const userTotal = getRowTotal(user.id);
-
-                return (
-                    <Card key={user.id} className="overflow-hidden border shadow-sm">
-                        <div className="px-4 py-3 border-b flex justify-between items-center bg-muted/20">
-                            <h3 className="font-bold text-lg">{user.name}</h3>
-                            <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200 text-sm font-black px-2 py-0.5">
-                                ৳{userTotal.toLocaleString()}
-                            </Badge>
-                        </div>
-                        <div className="p-4 space-y-4">
-                            {/* Carry Forward */}
-                            <div className="bg-orange-50/30 rounded-lg p-3 border border-orange-100/50">
-                                <label className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-1 block">Carry Forward</label>
-                                <Input 
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    disabled={!canEdit}
-                                    defaultValue={deposit?.carry_forward || ''}
-                                    placeholder="0"
-                                    className="h-10 border-orange-200 focus:ring-orange-500 font-bold bg-white"
-                                    onBlur={(e) => handleUpdate(user.id, 'carry_forward', e.target.value)}
-                                />
-                            </div>
-
-                            {/* Deposit Slots Grid */}
-                            <div className="grid grid-cols-4 gap-2">
-                                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => {
-                                    const key = `d${i}` as keyof MealDeposit;
-                                    // @ts-ignore
-                                    const val = deposit?.[key] as number;
-                                    
-                                    return (
-                                        <div key={i} className="flex flex-col gap-1">
-                                            <label className="text-[10px] text-center font-medium text-muted-foreground">D{i}</label>
-                                            <Input 
-                                                type="number"
-                                                min="0"
-                                                step="1"
-                                                className="h-9 px-1 text-center font-medium bg-muted/10 border-border/60 focus:bg-white transition-colors"
-                                                placeholder="-"
-                                                disabled={!canEdit}
-                                                defaultValue={val || ''}
-                                                onBlur={(e) => handleUpdate(user.id, `d${i}` as any, e.target.value)}
-                                            />
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    </Card>
-                )
-             })}
+        <div className="sm:hidden space-y-3 p-2">
+          {users.map((user) => {
+            const deposit = deposits.find(d => d.user_id === user.id)
+            const canEdit = isAdmin
+            const rowTotal = getRowTotal(user.id)
+            
+            return (
+              <div key={`mobile-${user.id}`} className="bg-card border rounded-xl p-3 space-y-3">
+                {/* User Header */}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-base">{user.name}</span>
+                  <Badge className="bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300 font-bold">
+                    ৳{rowTotal.toLocaleString()}
+                  </Badge>
+                </div>
+                
+                {/* Carry Forward */}
+                <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-900/20 p-2 rounded-lg">
+                  <span className="text-xs font-medium text-orange-600 dark:text-orange-400 w-16">C/F:</span>
+                  <Input 
+                    type="number"
+                    min="0"
+                    step="1"
+                    disabled={!canEdit}
+                    defaultValue={deposit?.carry_forward || ''}
+                    placeholder="0"
+                    className="h-8 text-center border-orange-200 bg-white dark:bg-slate-900 font-medium flex-1"
+                    onBlur={(e) => handleUpdate(user.id, 'carry_forward', e.target.value)}
+                  />
+                </div>
+                
+                {/* Deposit Grid - 4x2 */}
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(i => {
+                    const key = `d${i}` as keyof MealDeposit
+                    // @ts-ignore
+                    const val = deposit?.[key] as number
+                    return (
+                      <div key={i} className="flex flex-col items-center">
+                        <span className="text-[10px] font-medium text-muted-foreground mb-0.5">D{i}</span>
+                        <Input 
+                          type="number"
+                          min="0"
+                          step="1"
+                          className="text-center h-9 text-sm border-muted bg-muted/30"
+                          placeholder="-"
+                          disabled={!canEdit}
+                          defaultValue={val || ''}
+                          onBlur={(e) => handleUpdate(user.id, `d${i}` as any, e.target.value)}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </Card>
       

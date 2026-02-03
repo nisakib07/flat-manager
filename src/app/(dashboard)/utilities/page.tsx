@@ -4,16 +4,21 @@ import UtilityGrid from './UtilityGrid'
 // Extended caching - 5 minutes for instant tab switching
 export const revalidate = 300
 
-export default async function UtilitiesPage() {
+interface UtilitiesPageProps {
+  searchParams: Promise<{ month?: string }>
+}
+
+export default async function UtilitiesPage({ searchParams }: UtilitiesPageProps) {
   const supabase = await createClient()
+  const params = await searchParams
   
   const { data: { user: authUser } } = await supabase.auth.getUser()
   
-  // Current Month (Local Timezone Safe)
+  // Determine selected month (from URL param or current month)
+  // Format: YYYY-MM-01
   const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const currentMonthStr = `${year}-${month}-01`
+  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const selectedMonthStr = params.month || defaultMonth
 
   // Parallel queries for faster loading
   const [currentUserResult, usersResult, collectionsResult, expensesResult] = await Promise.all([
@@ -31,12 +36,12 @@ export default async function UtilitiesPage() {
     supabase
       .from('utility_collections')
       .select('*')
-      .eq('month', currentMonthStr),
+      .eq('month', selectedMonthStr),
     
     supabase
       .from('utility_expenses')
       .select('*')
-      .eq('month', currentMonthStr)
+      .eq('month', selectedMonthStr)
    ])
   
   const isAdmin = currentUserResult.data?.role === 'admin'
@@ -50,7 +55,7 @@ export default async function UtilitiesPage() {
       utilityCollections={utilityCollections || []}
       utilityExpenses={utilityExpenses || []}
       isAdmin={isAdmin}
-      selectedMonth={currentMonthStr}
+      selectedMonth={selectedMonthStr}
     />
   )
 }

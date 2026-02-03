@@ -1,11 +1,11 @@
 "use client"
 import { useState } from 'react'
-import { updateUserRole } from '../actions'
+import { updateUserRole, deleteUser } from '../actions'
 import type { User } from '@/types/database'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Info, Crown, User as UserIcon } from 'lucide-react'
+import { Info, Crown, User as UserIcon, Trash2 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 
 interface UsersClientProps {
@@ -24,6 +24,14 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
     
     setLoading(userId)
     await updateUserRole(userId, newRole)
+    setLoading(null)
+  }
+
+  async function handleDelete(userId: string) {
+    if (!confirm('Are you sure you want to delete this member? This action cannot be undone and will remove all their associated data.')) return
+    
+    setLoading(userId)
+    await deleteUser(userId)
     setLoading(null)
   }
 
@@ -97,15 +105,27 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
                      </Badge>
 
                      {isAdmin && user.id !== currentUserId && (
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleRoleChange(user.id, user.role === 'admin' ? 'viewer' : 'admin')}
-                            disabled={loading === user.id}
-                            className="h-8 text-xs font-semibold"
-                        >
-                            {loading === user.id ? 'Updating...' : user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleRoleChange(user.id, user.role === 'admin' ? 'viewer' : 'admin')}
+                                disabled={loading === user.id}
+                                className="h-8 text-xs font-semibold"
+                            >
+                                {loading === user.id ? 'Updating...' : user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(user.id)}
+                                disabled={loading === user.id}
+                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                title="Delete Member"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </div>
                      )}
                 </div>
 

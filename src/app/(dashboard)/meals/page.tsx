@@ -4,8 +4,13 @@ import MonthlyMealGrid from './MonthlyMealGrid'
 // Extended caching - 5 minutes for instant tab switching
 export const revalidate = 300
 
-export default async function MealsPage() {
+interface MealsPageProps {
+  searchParams: Promise<{ month?: string }>
+}
+
+export default async function MealsPage({ searchParams }: MealsPageProps) {
   const supabase = await createClient()
+  const params = await searchParams
   
   const { data: { user: authUser } } = await supabase.auth.getUser()
   
@@ -24,12 +29,19 @@ export default async function MealsPage() {
     .select('*')
     .order('name')
   
-  // Determine current month range
+  // Determine selected month (from URL param or current month)
   const today = new Date()
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
-  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
+  const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
+  const selectedMonth = params.month || defaultMonth
+  
+  // Parse month for date range
+  const [year, month] = selectedMonth.split('-').map(Number)
+  // Format dates manually to avoid timezone issues with toISOString()
+  const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`
+  const lastDay = new Date(year, month, 0).getDate()
+  const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-  // Fetch meal costs for the current month
+  // Fetch meal costs for the selected month
   const { data: monthlyMealCosts } = await supabase
     .from('meal_costs')
     .select('*, user:users(name)')
@@ -41,8 +53,10 @@ export default async function MealsPage() {
     <MonthlyMealGrid 
       users={users || []} 
       monthlyMealCosts={monthlyMealCosts || []} 
-      selectedDate={today.toISOString().split('T')[0]}
+      selectedDate={startOfMonth}
+      selectedMonth={selectedMonth}
       isAdmin={isAdmin}
     />
   )
 }
+

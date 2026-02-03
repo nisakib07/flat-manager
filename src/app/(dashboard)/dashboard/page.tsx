@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import MealTableClient from './MealTableClient'
 import MealCalculation from './MealCalculation'
+import PersonalSummaryCard from './PersonalSummaryCard'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
@@ -123,15 +124,17 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-3 lg:gap-8">
         {/* Left Column - Meal Table (spans 2 cols on large screens) */}
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-          {/* Meal Table - Main Feature */}
-          <MealTableClient
-            users={users || []}
-            mealTypes={mealTypes || []}
-            todayMeals={todayMeals || []}
-            dailyMeals={dailyMeals || []}
-            selectedDate={today}
-            isAdmin={isAdmin}
-          />
+          {/* Meal Table - Admin Only */}
+          {isAdmin && (
+            <MealTableClient
+              users={users || []}
+              mealTypes={mealTypes || []}
+              todayMeals={todayMeals || []}
+              dailyMeals={dailyMeals || []}
+              selectedDate={today}
+              isAdmin={isAdmin}
+            />
+          )}
 
           {/* Meal Cost Calculation */}
           <MealCalculation
@@ -146,61 +149,72 @@ export default async function DashboardPage() {
 
         {/* Right Column - Sidebar (stacks below on mobile) */}
         <div className="space-y-4 sm:space-y-6">
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader className="pb-3 sm:pb-4">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <span className="text-lg sm:text-xl">⚡</span> Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 sm:space-y-3">
-              <Button
-                variant="outline"
-                className="w-full h-auto min-h-[56px] sm:min-h-[64px] py-3 sm:py-4 px-3 sm:px-4 justify-start gap-3 sm:gap-4 hover:bg-primary/5 hover:border-primary/30 group transition-all active:scale-[0.98]"
-                asChild
-              >
-                <Link href="/shopping">
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-xl sm:text-2xl group-hover:scale-110 transition-transform shrink-0">🛒</div>
-                  <div className="text-left flex-1 min-w-0">
-                    <div className="font-semibold text-sm sm:text-base">Add Shopping</div>
-                    <div className="text-muted-foreground text-xs sm:text-sm">
-                      Total: ৳{totalShopping.toLocaleString()}
-                    </div>
-                  </div>
-                </Link>
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="w-full h-auto min-h-[56px] sm:min-h-[64px] py-3 sm:py-4 px-3 sm:px-4 justify-start gap-3 sm:gap-4 hover:bg-primary/5 hover:border-primary/30 group transition-all active:scale-[0.98]"
-                asChild
-              >
-                <Link href="/deposits">
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-xl sm:text-2xl group-hover:scale-110 transition-transform shrink-0">💰</div>
-                  <div className="text-left flex-1 min-w-0">
-                    <div className="font-semibold text-sm sm:text-base">Make Deposit</div>
-                    <div className="text-muted-foreground text-xs sm:text-sm">Add funds</div>
-                  </div>
-                </Link>
-              </Button>
+          <PersonalSummaryCard 
+            currentUserId={authUser?.id}
+            users={users || []}
+            mealCosts={monthlyMealCosts || []}
+            bajarItems={monthlyBajar || []}
+            commonExpenses={commonExpenses || []}
+            mealDeposits={mealDeposits || []}
+          />
 
-              <Button
-                variant="outline"
-                className="w-full h-auto min-h-[56px] sm:min-h-[64px] py-3 sm:py-4 px-3 sm:px-4 justify-start gap-3 sm:gap-4 hover:bg-primary/5 hover:border-primary/30 group transition-all active:scale-[0.98]"
-                asChild
-              >
-                <Link href="/users">
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-xl sm:text-2xl group-hover:scale-110 transition-transform shrink-0">👥</div>
-                  <div className="text-left flex-1 min-w-0">
-                    <div className="font-semibold text-sm sm:text-base">Members</div>
-                    <div className="text-muted-foreground text-xs sm:text-sm">
-                      {users?.length || 0} flatmates
+          {/* Quick Actions - Admin Only */}
+          {isAdmin && (
+            <Card>
+              <CardHeader className="pb-3 sm:pb-4">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                  <span className="text-lg sm:text-xl">⚡</span> Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 sm:space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full h-auto min-h-[56px] sm:min-h-[64px] py-3 sm:py-4 px-3 sm:px-4 justify-start gap-3 sm:gap-4 hover:bg-primary/5 hover:border-primary/30 group transition-all active:scale-[0.98]"
+                  asChild
+                >
+                  <Link href="/shopping">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-xl sm:text-2xl group-hover:scale-110 transition-transform shrink-0">🛒</div>
+                    <div className="text-left flex-1 min-w-0">
+                      <div className="font-semibold text-sm sm:text-base">Add Shopping</div>
+                      <div className="text-muted-foreground text-xs sm:text-sm">
+                        Total: ৳{totalShopping.toLocaleString()}
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+                  </Link>
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  className="w-full h-auto min-h-[56px] sm:min-h-[64px] py-3 sm:py-4 px-3 sm:px-4 justify-start gap-3 sm:gap-4 hover:bg-primary/5 hover:border-primary/30 group transition-all active:scale-[0.98]"
+                  asChild
+                >
+                  <Link href="/deposits">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-xl sm:text-2xl group-hover:scale-110 transition-transform shrink-0">💰</div>
+                    <div className="text-left flex-1 min-w-0">
+                      <div className="font-semibold text-sm sm:text-base">Make Deposit</div>
+                      <div className="text-muted-foreground text-xs sm:text-sm">Add funds</div>
+                    </div>
+                  </Link>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full h-auto min-h-[56px] sm:min-h-[64px] py-3 sm:py-4 px-3 sm:px-4 justify-start gap-3 sm:gap-4 hover:bg-primary/5 hover:border-primary/30 group transition-all active:scale-[0.98]"
+                  asChild
+                >
+                  <Link href="/users">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-xl sm:text-2xl group-hover:scale-110 transition-transform shrink-0">👥</div>
+                    <div className="text-left flex-1 min-w-0">
+                      <div className="font-semibold text-sm sm:text-base">Members</div>
+                      <div className="text-muted-foreground text-xs sm:text-sm">
+                        {users?.length || 0} flatmates
+                      </div>
+                    </div>
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Recent Shopping */}
           <Card>

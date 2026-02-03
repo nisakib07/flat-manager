@@ -124,12 +124,12 @@ function MealCalculation({
         <div className="grid gap-2.5 sm:gap-4 grid-cols-3">
           <div className="rounded-xl border border-teal-100 bg-white dark:bg-teal-950/30 dark:border-teal-900 p-3 sm:p-5 shadow-sm">
             <p className="text-[10px] sm:text-xs font-bold text-teal-600 dark:text-teal-400 mb-1 sm:mb-2 uppercase tracking-wider">Shopping</p>
-            <p className="text-lg sm:text-2xl font-black text-teal-900 dark:text-teal-100">৳{(totalBajar/1000).toFixed(1)}k</p>
+            <p className="text-lg sm:text-2xl font-black text-teal-900 dark:text-teal-100">৳{totalBajar}</p>
             <p className="text-[9px] sm:hidden text-muted-foreground">৳{totalBajar.toLocaleString()}</p>
           </div>
           <div className="rounded-xl border border-orange-100 bg-white dark:bg-orange-950/30 dark:border-orange-900 p-3 sm:p-5 shadow-sm">
             <p className="text-[10px] sm:text-xs font-bold text-orange-600 dark:text-orange-400 mb-1 sm:mb-2 uppercase tracking-wider">Weight</p>
-            <p className="text-lg sm:text-2xl font-black text-orange-900 dark:text-orange-100">{totalMealWeight.toLocaleString()}</p>
+            <p className="text-lg sm:text-2xl font-black text-orange-900 dark:text-orange-100">{totalMealWeight}</p>
           </div>
           <div className="rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-900 p-3 sm:p-5 shadow-sm">
             <p className="text-[10px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 mb-1 sm:mb-2 uppercase tracking-wider">Rate</p>

@@ -2,7 +2,15 @@
 
 import { useState } from 'react'
 import { addBajarItem, deleteBajarItem, updateBajarItem, addFundTransfer } from '../actions'
+import { useRef } from 'react'
+import MonthSelector from '@/components/MonthSelector'
 import type { User, BajarItem } from '@/types/database'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 
 interface ShoppingClientProps {
   users: Pick<User, 'id' | 'name'>[]
@@ -11,6 +19,7 @@ interface ShoppingClientProps {
   managerBalance: number
   shopperBalances: Record<string, number>
   currentUserId: string
+  selectedMonth: string
 }
 
 export default function ShoppingClient({ 
@@ -19,13 +28,16 @@ export default function ShoppingClient({
   isAdmin, 
   managerBalance, 
   shopperBalances, 
-  currentUserId 
+  currentUserId,
+  selectedMonth
 }: ShoppingClientProps) {
   const [showForm, setShowForm] = useState(false)
   const [showTransferForm, setShowTransferForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editingItem, setEditingItem] = useState<(Pick<BajarItem, 'id' | 'item_name' | 'cost' | 'purchase_date' | 'user_id'> & { user: { name: string } | null }) | null>(null)
+  const [transferType, setTransferType] = useState<'give' | 'return'>('give')
+  const [viewShopperId, setViewShopperId] = useState<string>(currentUserId)
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -50,6 +62,12 @@ export default function ShoppingClient({
   async function handleTransferSubmit(formData: FormData) {
     setLoading(true)
     setError(null)
+    
+    // Handle returns (negative transfer)
+    if (transferType === 'return') {
+        const amount = Number(formData.get('amount'))
+        formData.set('amount', String(-Math.abs(amount)))
+    }
     
     const result = await addFundTransfer(formData)
 
@@ -84,82 +102,119 @@ export default function ShoppingClient({
     setError(null)
   }
 
-  const today = new Date().toISOString().split('T')[0]
   const totalCost = items.reduce((sum, item) => sum + Number(item.cost), 0)
   const myBalance = shopperBalances[currentUserId] || 0
 
+  // Helper to open add form
+  const openAddForm = () => {
+    setEditingItem(null)
+    setShowTransferForm(false)
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+
   return (
-    <div className="space-y-6 animate-fadeIn pb-20">
-      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-4 pb-24">
+      {/* Header Section - Unified Layout */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="page-title">🛒 Shopping List</h1>
-          <p className="page-description">Daily shopping tracking</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">🛒 Shopping</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Track spending</p>
         </div>
-        <div className="flex gap-2">
-            {isAdmin && (
-            <button 
-                onClick={() => {
-                    setEditingItem(null)
-                    setShowForm(false)
-                    setShowTransferForm(!showTransferForm)
-                }} 
-                className="btn bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-                <span className="mr-2">💸</span>
-                Transfer Funds
-            </button>
-            )}
-            {isAdmin && (
-            <button 
-                onClick={() => {
-                    setEditingItem(null)
-                    setShowTransferForm(false)
-                    setShowForm(!showForm)
-                }} 
-                className="btn btn-primary"
-            >
-                <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                {showForm && !editingItem ? 'Close' : 'Add Item'}
-            </button>
-            )}
-        </div>
+        <MonthSelector selectedMonth={selectedMonth} />
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {/* Total Cost */}
-        <div className="p-6 rounded-xl shadow-lg bg-gradient-to-br from-teal-500 to-emerald-600 text-white transform hover:scale-[1.02] transition-transform">
-          <div className="flex flex-col">
-            <p className="text-white/90 text-sm font-medium">Total Spent (Month)</p>
-            <p className="text-3xl font-bold mt-1">৳{totalCost.toLocaleString()}</p>
+      {/* Action Buttons Row */}
+      {isAdmin && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button 
+            onClick={() => {
+              setEditingItem(null)
+              setShowForm(false)
+              setShowTransferForm(!showTransferForm)
+            }} 
+            className="btn bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2 px-3"
+          >
+            💸 Transfer
+          </button>
+          <button 
+            onClick={() => {
+              setEditingItem(null)
+              setShowTransferForm(false)
+              setShowForm(!showForm)
+            }} 
+            className="btn btn-primary text-sm py-2 px-3"
+          >
+            {showForm && !editingItem ? '✕ Close' : '+ Add Item'}
+          </button>
+          
+          {/* Shopper Selector Button */}
+          <div className="relative ml-auto">
+            <select 
+              value={viewShopperId}
+              onChange={(e) => setViewShopperId(e.target.value)}
+              className="appearance-none bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg px-3 py-2 pr-8 border border-slate-600 outline-none cursor-pointer transition-colors"
+            >
+              {users.map(u => (
+                <option key={u.id} value={u.id} className="text-gray-900 bg-white">{u.name}</option>
+              ))}
+            </select>
+            <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/70 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </div>
+        </div>
+      )}
+
+      {/* Stats Cards - Compact */}
+      <div className="grid gap-3 grid-cols-3">
+        {/* Total Cost */}
+        <div className="p-3 sm:p-4 rounded-xl shadow-md bg-gradient-to-br from-teal-500 to-emerald-600 text-white">
+          <p className="text-white/80 text-[10px] sm:text-xs font-medium uppercase">Spent</p>
+          <p className="text-lg sm:text-2xl font-bold">৳{totalCost.toLocaleString()}</p>
         </div>
 
         {/* Manager Has */}
-        <div className="p-6 rounded-xl shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white transform hover:scale-[1.02] transition-transform">
-            <div className="flex flex-col">
-                <p className="text-white/90 text-sm font-medium">Manager Has 👑</p>
-                <p className="text-3xl font-bold mt-1">৳{managerBalance.toLocaleString()}</p>
-            </div>
+        <div className="p-3 sm:p-4 rounded-xl shadow-md bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+          <p className="text-white/80 text-[10px] sm:text-xs font-medium uppercase">Manager</p>
+          <p className="text-lg sm:text-2xl font-bold">৳{managerBalance.toLocaleString()}</p>
         </div>
 
-        {/* Shopper Has (My Cash) */}
-        <div className="p-6 rounded-xl shadow-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white transform hover:scale-[1.02] transition-transform">
-            <div className="flex flex-col">
-                <p className="text-white/90 text-sm font-medium">My Cash 💰</p>
-                <p className="text-3xl font-bold mt-1">৳{myBalance.toLocaleString()}</p>
-            </div>
+        {/* Shopper Balance - Clean Display */}
+        <div className="p-3 sm:p-4 rounded-xl shadow-md bg-gradient-to-br from-amber-500 to-orange-600 text-white">
+          <p className="text-white/80 text-[10px] sm:text-xs font-medium uppercase">{users.find(u => u.id === viewShopperId)?.name || 'Shopper'}</p>
+          <p className="text-lg sm:text-2xl font-bold">৳{Math.max(0, shopperBalances[viewShopperId] || 0).toLocaleString()}</p>
         </div>
       </div>
 
-      {/* Transfer Funds Form */}
-      {showTransferForm && (
-        <div className="card animate-fadeIn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
-          <h3 className="card-title mb-4 text-gray-900 dark:text-white flex items-center gap-2">
-              <span>💸</span> Transfer Funds to Shopper
-          </h3>
+      {/* Transfer Funds Sheet */}
+      <Sheet open={showTransferForm} onOpenChange={setShowTransferForm}>
+        <SheetContent side="responsive" className="h-[85vh] sm:h-auto overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="flex items-center gap-2 text-xl">
+              <span>💸</span> {transferType === 'give' ? 'Transfer Funds to Shopper' : 'Receive Return from Shopper'}
+            </SheetTitle>
+          </SheetHeader>
+          
+          <div className="flex bg-muted/50 p-1 rounded-lg mb-6">
+            <button 
+                type="button"
+                onClick={() => setTransferType('give')}
+                className={`flex-1 text-sm font-medium py-2 rounded-md transition-all ${transferType === 'give' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600' : 'text-muted-foreground hover:bg-white/50'}`}
+            >
+                To Shopper →
+            </button>
+            <button 
+                type="button"
+                onClick={() => setTransferType('return')}
+                className={`flex-1 text-sm font-medium py-2 rounded-md transition-all ${transferType === 'return' ? 'bg-white dark:bg-gray-800 shadow text-amber-600' : 'text-muted-foreground hover:bg-white/50'}`}
+            >
+                 Return ←
+            </button>
+          </div>
+
           <form action={handleTransferSubmit} className="space-y-4">
             {error && (
             <div className="p-3 rounded-lg text-sm bg-red-50 text-red-600 dark:bg-red-900/10 dark:text-red-400">
@@ -167,60 +222,63 @@ export default function ShoppingClient({
             </div>
             )}
             
-            <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                  Select Shopper
-                </label>
-                <select 
-                    name="shopper_id" 
-                    required 
-                    className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                >
-                <option value="">Select Member</option>
-                {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                        {user.name} (Has: ৳{shopperBalances[user.id] || 0})
-                    </option>
-                ))}
-                </select>
-            </div>
-            
-            <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                  Amount (৳)
-                </label>
-                <input 
-                    type="number" 
-                    name="amount" 
-                    min="1"
-                    placeholder="e.g. 500" 
-                    required 
-                    className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                />
-            </div>
+            <div className="grid gap-4">
+              <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    Select Shopper {transferType === 'return' && '(Returning Funds)'}
+                  </label>
+                  <select 
+                      name="shopper_id" 
+                      required 
+                      className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  >
+                  <option value="">Select Member</option>
+                  {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                          {user.name} (Has: ৳{Math.max(0, shopperBalances[user.id] || 0)})
+                      </option>
+                  ))}
+                  </select>
+              </div>
+              
+              <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    Amount (৳)
+                  </label>
+                  <input 
+                      type="number" 
+                      name="amount" 
+                      min="1"
+                      placeholder="e.g. 500" 
+                      required 
+                      className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  />
+              </div>
 
-            <div className="hidden">
-                  <input type="date" name="transfer_date" defaultValue={today} />
-            </div>
+              <div className="hidden">
+                    <input type="date" name="transfer_date" defaultValue={today} />
+              </div>
             </div>
             
-            <div className="flex gap-3">
-            <button type="submit" className="btn bg-indigo-600 hover:bg-indigo-700 text-white border-none" disabled={loading}>
-                {loading ? 'Processing...' : 'Transfer Money'}
-            </button>
-            <button type="button" onClick={handleCancel} className="btn bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300 border-none">
-                Cancel
-            </button>
+            <div className="pt-4 flex gap-3">
+              <button type="submit" className={`btn flex-1 text-white border-none ${transferType === 'give' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-amber-600 hover:bg-amber-700'}`} disabled={loading}>
+                  {loading ? 'Processing...' : (transferType === 'give' ? 'Transfer Money' : 'Confirm Return')}
+              </button>
+              <button type="button" onClick={handleCancel} className="btn flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300 border-none">
+                  Cancel
+              </button>
             </div>
           </form>
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
 
-      {/* Add/Edit Form */}
-      {showForm && (
-        <div className="card animate-fadeIn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
-          <h3 className="card-title mb-4 text-gray-900 dark:text-white">{editingItem ? 'Edit Item' : 'Add New Item'}</h3>
+      {/* Add/Edit Item Sheet */}
+      <Sheet open={showForm} onOpenChange={setShowForm}>
+        <SheetContent side="responsive" className="h-[85vh] sm:h-auto overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle>{editingItem ? 'Edit Item' : 'Add New Item'}</SheetTitle>
+          </SheetHeader>
+          
           <form key={editingItem ? editingItem.id : 'new'} action={handleSubmit} className="space-y-4">
             {error && (
               <div className="p-3 rounded-lg text-sm bg-red-50 text-red-600 dark:bg-red-900/10 dark:text-red-400">
@@ -229,6 +287,20 @@ export default function ShoppingClient({
             )}
             
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                  Item Name
+                </label>
+                <input 
+                    type="text" 
+                    name="item_name" 
+                    defaultValue={editingItem?.item_name || ""}
+                    placeholder="e.g. Rice, Dal, Vegetables" 
+                    required 
+                    className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                   Shopper
@@ -259,21 +331,7 @@ export default function ShoppingClient({
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
-                  Item Name
-                </label>
-                <input 
-                    type="text" 
-                    name="item_name" 
-                    defaultValue={editingItem?.item_name || ""}
-                    placeholder="e.g. Rice, Dal, Vegetables" 
-                    required 
-                    className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                />
-              </div>
-              
-              <div>
+              <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                   Cost (৳)
                 </label>
@@ -289,26 +347,26 @@ export default function ShoppingClient({
               </div>
             </div>
             
-            <div className="flex gap-3">
-              <button type="submit" className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white border-none" disabled={loading}>
+            <div className="pt-4 flex gap-3">
+              <button type="submit" className="btn flex-1 btn-primary bg-blue-600 hover:bg-blue-700 text-white border-none" disabled={loading}>
                 {loading ? (editingItem ? 'Updating...' : 'Adding...') : (editingItem ? 'Update Item' : 'Add Item')}
               </button>
-              <button type="button" onClick={handleCancel} className="btn bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300 border-none">
+              <button type="button" onClick={handleCancel} className="btn flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300 border-none">
                 Cancel
               </button>
             </div>
           </form>
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
 
       {/* Items Table */}
       <div className="card bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
         {items.length > 0 ? (
           <>
-            {/* Desktop Table View */}
-            <div className="table-container hidden md:block">
-              <table className="w-full text-left border-collapse">
-                <thead>
+            {/* Unified Table View for Mobile & Desktop */}
+            <div className="table-container overflow-x-auto overflow-y-auto max-h-[70vh] sm:max-h-none">
+              <table className="w-full min-w-[500px] text-left border-collapse">
+                <thead className="sticky top-0 z-10 bg-white dark:bg-gray-900">
                   <tr className="border-b border-gray-200 dark:border-gray-800">
                     <th className="py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">Date</th>
                     <th className="py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-400">Item</th>
@@ -357,77 +415,38 @@ export default function ShoppingClient({
                 </tbody>
               </table>
             </div>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-3">
-              {items.map((item) => (
-                <div 
-                  key={item.id} 
-                  className={`bg-white dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col gap-3 active:scale-[0.99] transition-transform ${
-                    editingItem?.id === item.id ? "border-blue-500 ring-1 ring-blue-500 bg-blue-50 dark:bg-blue-900/10" : ""
-                  }`}
-                  onClick={() => isAdmin && startEdit(item)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-lg text-gray-900 dark:text-white leading-tight truncate">{item.item_name}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2">
-                        <span>📅 {new Date(item.purchase_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>
-                        <span>•</span>
-                        <span className="inline-flex items-center gap-1 text-gray-700 dark:text-gray-300">
-                          👤 {item.user?.name || 'Unknown'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className="text-lg font-black bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
-                        ৳{item.cost}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {isAdmin && (
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-700 mt-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDelete(item.id)
-                        }}
-                        className="h-9 px-4 text-xs font-semibold text-red-600 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50 rounded-lg flex items-center gap-2 transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          startEdit(item)
-                        }}
-                        className="h-9 px-4 text-xs font-semibold text-blue-600 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 rounded-lg flex items-center gap-2 transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                        Edit
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
           </>
         ) : (
           <div className="empty-state py-12 flex flex-col items-center justify-center text-center">
             <svg className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No shopping items found</h3>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Start by adding a new item</p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No shopping items yet</h3>
+            <p className="text-gray-500 dark:text-gray-400 mt-1 mb-4">Start tracking your expenses</p>
+            {isAdmin && (
+              <button 
+                onClick={openAddForm}
+                className="btn btn-primary"
+              >
+                + Add First Item
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {/* Floating Action Button for Quick Add */}
+      {isAdmin && !showForm && !showTransferForm && (
+        <button
+          onClick={openAddForm}
+          className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white shadow-lg z-40 flex items-center justify-center transition-all duration-200 sm:hidden"
+          aria-label="Add shopping item"
+        >
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      )}
     </div>
   )
 }

@@ -158,6 +158,14 @@ export async function addCommonExpense(formData: FormData) {
   const expense_name = formData.get('expense_name') as string
   const total_cost = Number(formData.get('total_cost'))
   const month = formData.get('month') as string
+  const shopper_id = formData.get('shopper_id') as string
+  const payment_preference = (formData.get('payment_preference') as string) || 'deposit'
+  
+  // Get current month for balance calculations
+  const today = new Date()
+  const year = today.getFullYear()
+  const monthNum = String(today.getMonth() + 1).padStart(2, '0')
+  const currentMonth = `${year}-${monthNum}-01`
   
   // Get user count for calculating share
   const { count } = await supabase
@@ -166,13 +174,95 @@ export async function addCommonExpense(formData: FormData) {
   
   const user_share = count ? total_cost / count : total_cost
 
+  // Calculate shopper's current balance before this expense
+  // Balance = Transfers - Shopping - Common Expenses
+  const [transfersResult, shoppingResult, commonExpensesResult] = await Promise.all([
+    supabase
+      .from('fund_transfers')
+      .select('amount')
+      .eq('shopper_id', shopper_id)
+      .gte('transfer_date', currentMonth),
+    supabase
+      .from('bajar_list')
+      .select('cost')
+      .eq('user_id', shopper_id)
+      .gte('purchase_date', currentMonth),
+    supabase
+      .from('common_expenses')
+      .select('total_cost')
+      .eq('shopper_id', shopper_id)
+      .eq('month', currentMonth)
+  ])
+
+  const totalTransfers = transfersResult.data?.reduce((sum, t) => sum + Number(t.amount), 0) || 0
+  const totalShopping = shoppingResult.data?.reduce((sum, s) => sum + Number(s.cost), 0) || 0
+  const totalCommonExpenses = commonExpensesResult.data?.reduce((sum, c) => sum + Number(c.total_cost), 0) || 0
+  
+  const currentBalance = totalTransfers - totalShopping - totalCommonExpenses
+  
+  // Check if the new expense exceeds the balance
+  const excessAmount = total_cost - currentBalance
+  
+  // Track auto-deposit info for potential reversal on delete
+  let autoDepositAmount = 0
+  let autoDepositSlot: string | null = null
+  
+  // Only auto-deposit if preference is 'deposit' and there's an excess
+  if (payment_preference === 'deposit' && excessAmount > 0) {
+    autoDepositAmount = excessAmount
+    
+    // Get existing deposit record for the shopper this month
+    const { data: existingDeposit } = await supabase
+      .from('meal_deposits')
+      .select('*')
+      .eq('user_id', shopper_id)
+      .eq('month', currentMonth)
+      .single()
+
+    if (existingDeposit) {
+      // Find the first empty slot (D1-D8) and add the excess
+      const depositSlots = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'] as const
+      
+      for (const slot of depositSlots) {
+        if (!existingDeposit[slot] || existingDeposit[slot] === 0) {
+          autoDepositSlot = slot
+          break
+        }
+      }
+      
+      if (autoDepositSlot) {
+        await supabase
+          .from('meal_deposits')
+          .update({ [autoDepositSlot]: excessAmount })
+          .eq('id', existingDeposit.id)
+      }
+    } else {
+      // Create a new deposit record with the excess in D1
+      autoDepositSlot = 'd1'
+      await supabase
+        .from('meal_deposits')
+        .insert({
+          user_id: shopper_id,
+          month: currentMonth,
+          d1: excessAmount
+        })
+    }
+    
+    revalidatePath('/deposits')
+  }
+
+  // Insert the common expense with auto-deposit tracking info
   const { error } = await supabase
     .from('common_expenses')
     .insert({
       expense_name,
       total_cost,
       user_share,
-      month
+      month,
+      shopper_id,
+      auto_deposit_amount: autoDepositAmount,
+      auto_deposit_slot: autoDepositSlot,
+      payment_preference
     })
 
   if (error) {
@@ -180,12 +270,42 @@ export async function addCommonExpense(formData: FormData) {
   }
 
   revalidatePath('/common-expenses')
+  revalidatePath('/shopping')
   return { success: true }
 }
 
 export async function deleteCommonExpense(id: string) {
   const supabase = await createClient()
   
+  // First, get the expense to check for auto-deposit info
+  const { data: expense } = await supabase
+    .from('common_expenses')
+    .select('shopper_id, month, auto_deposit_amount, auto_deposit_slot')
+    .eq('id', id)
+    .single()
+  
+  // If there was an auto-deposit, reverse it
+  if (expense?.auto_deposit_amount && expense?.auto_deposit_slot && expense?.shopper_id) {
+    // Get the deposit record
+    const { data: deposit } = await supabase
+      .from('meal_deposits')
+      .select('id')
+      .eq('user_id', expense.shopper_id)
+      .eq('month', expense.month)
+      .single()
+    
+    if (deposit) {
+      // Clear the auto-deposit slot
+      await supabase
+        .from('meal_deposits')
+        .update({ [expense.auto_deposit_slot]: 0 })
+        .eq('id', deposit.id)
+      
+      revalidatePath('/deposits')
+    }
+  }
+  
+  // Now delete the expense
   const { error } = await supabase
     .from('common_expenses')
     .delete()
@@ -196,6 +316,7 @@ export async function deleteCommonExpense(id: string) {
   }
 
   revalidatePath('/common-expenses')
+  revalidatePath('/shopping')
   return { success: true }
 }
 
@@ -205,6 +326,7 @@ export async function updateCommonExpense(id: string, formData: FormData) {
   const expense_name = formData.get('expense_name') as string
   const total_cost = Number(formData.get('total_cost'))
   const month = formData.get('month') as string
+  const shopper_id = formData.get('shopper_id') as string
   
   // Get user count for calculating share
   const { count } = await supabase
@@ -219,7 +341,8 @@ export async function updateCommonExpense(id: string, formData: FormData) {
       expense_name,
       total_cost,
       user_share,
-      month
+      month,
+      shopper_id
     })
     .eq('id', id)
 
@@ -285,6 +408,23 @@ export async function updateUserRole(userId: string, role: 'admin' | 'viewer') {
   }
 
   revalidatePath('/users')
+  return { success: true }
+}
+
+export async function deleteUser(userId: string) {
+  const supabase = await createClient()
+  
+  const { error } = await supabase
+    .from('users')
+    .delete()
+    .eq('id', userId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/users')
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
