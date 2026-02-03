@@ -9,10 +9,11 @@ export default async function UtilitiesPage() {
   
   const { data: { user: authUser } } = await supabase.auth.getUser()
   
-  // Current Month
-  const today = new Date()
-  const currentMonthDate = new Date(today.getFullYear(), today.getMonth(), 1)
-  const currentMonthStr = currentMonthDate.toISOString().split('T')[0] // YYYY-MM-01
+  // Current Month (Local Timezone Safe)
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const currentMonthStr = `${year}-${month}-01`
 
   // Parallel queries for faster loading
   const [currentUserResult, usersResult, collectionsResult, expensesResult] = await Promise.all([
@@ -24,7 +25,7 @@ export default async function UtilitiesPage() {
     
     supabase
       .from('users')
-      .select('id, name')
+      .select('*')
       .order('name'),
     
     supabase

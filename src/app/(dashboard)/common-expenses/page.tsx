@@ -16,7 +16,7 @@ export default async function CommonExpensesPage() {
   
   const { data: users } = await supabase
     .from('users')
-    .select('id, name')
+    .select('*')
     .order('name')
   
   const { data: expenses } = await supabase
