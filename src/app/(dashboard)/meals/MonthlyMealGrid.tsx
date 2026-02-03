@@ -8,7 +8,6 @@ import {
 } from '../actions'
 import type { User, MealCost } from '@/types/database'
 import {
-  Table,
   TableBody,
   TableCell,
   TableFooter,
@@ -267,18 +266,17 @@ export default function MonthlyMealGrid({
 
       <Card className="shadow-md border-muted/60 bg-transparent sm:bg-card border-none sm:border">
         {/* Desktop Table View */}
-        <div className="overflow-x-auto relative">
-          <Table className="relative border-separate border-spacing-0">
-            <TableHeader className="sticky top-0 z-20 bg-background shadow-md">
+        <div className="overflow-x-auto relative border rounded-md bg-background scrollbar-thin scrollbar-thumb-teal-200 dark:scrollbar-thumb-teal-800">
+          <table className="relative border-separate border-spacing-0 w-full text-sm">
+            <TableHeader className="bg-background">
               <TableRow className="bg-teal-50/80 dark:bg-teal-950/40 hover:bg-teal-50/80 dark:hover:bg-teal-900/40 border-b-2 border-teal-100 dark:border-teal-900">
-                <TableHead className="sticky left-0 z-30 bg-teal-50 dark:bg-teal-950/40 border-r border-teal-200 dark:border-teal-900 w-[100px] text-center font-bold text-teal-900 dark:text-teal-100 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                <TableHead className="sticky top-0 left-0 z-50 bg-teal-50 dark:bg-teal-950 border-r border-teal-200 dark:border-teal-900 w-[50px] text-center font-bold text-teal-900 dark:text-teal-100 shadow-[2px_2px_5px_rgba(0,0,0,0.05)] p-0.5 h-8">
                    <div className="flex flex-col items-center justify-center h-full">
-                       <CalendarDays className="h-4 w-4 mb-1 opacity-50"/>
-                       <span>Date</span>
+                       <span className="text-[9px] uppercase tracking-tighter">Date</span>
                    </div>
                 </TableHead>
                 {users.map(user => (
-                  <TableHead key={user.id} className="text-center font-bold text-teal-900 dark:text-teal-100 min-w-[120px] px-2 border-r border-teal-200 dark:border-teal-900 last:border-r-0">
+                  <TableHead key={user.id} className="sticky top-0 z-40 bg-teal-50/95 dark:bg-teal-950/95 backdrop-blur text-center font-bold text-teal-900 dark:text-teal-100 min-w-[70px] px-1 border-r border-teal-200 dark:border-teal-900 last:border-r-0 h-8 text-[11px] shadow-[0_2px_5px_rgba(0,0,0,0.02)]">
                     {user.name}
                   </TableHead>
                 ))}
@@ -297,12 +295,12 @@ export default function MonthlyMealGrid({
                         isToday && "bg-teal-100/40 dark:bg-teal-900/40 hover:bg-teal-100/60 dark:hover:bg-teal-900/60"
                     )}>
                       <TableCell className={cn(
-                          "sticky left-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 text-center font-medium border-r border-border shadow-[2px_0_5px_rgba(0,0,0,0.05)] p-2",
+                          "sticky left-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 text-center font-medium border-r border-border shadow-[2px_0_5px_rgba(0,0,0,0.05)] p-0.5 h-8",
                           isToday && "bg-teal-600 dark:bg-teal-600 text-white font-extrabold shadow-md"
                       )}>
                           <div className="flex flex-col">
-                              <span className="text-lg leading-none">{dateNum}</span>
-                              <span className="text-[10px] uppercase opacity-90 font-semibold">{dayName}</span>
+                              <span className="text-xs leading-none">{dateNum}</span>
+                              <span className="text-[8px] uppercase opacity-90 font-semibold">{dayName}</span>
                           </div>
                       </TableCell>
                       {users.map(user => {
@@ -312,8 +310,8 @@ export default function MonthlyMealGrid({
                           const dinnerWeight = dinner ? Number(dinner.meal_weight) : 0
                           
                           return (
-                              <TableCell key={user.id} className="p-0 border-r border-border last:border-r-0 relative group">
-                                  <div className="flex h-12">
+                              <TableCell key={user.id} className="p-0 border-r border-border last:border-r-0 relative group h-8">
+                                  <div className="flex h-full">
                                       {/* Lunch Cell (Teal) */}
                                       <div 
                                           className={cn(
@@ -323,11 +321,11 @@ export default function MonthlyMealGrid({
                                           onClick={() => openEditModal(user.id, day, 'Lunch')}
                                       >
                                           {lunchWeight > 0 ? (
-                                              <Badge className="h-7 w-7 min-w-7 p-0 flex items-center justify-center rounded-full bg-teal-500 hover:bg-teal-600 text-white font-bold shadow-sm border-none text-xs">
+                                              <Badge className="h-5 w-5 min-w-5 p-0 flex items-center justify-center rounded-full bg-teal-500 hover:bg-teal-600 text-white font-bold shadow-sm border-none text-[9px]">
                                                   {lunchWeight}
                                               </Badge>
                                           ) : (
-                                              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20 group-hover:bg-teal-300 dark:group-hover:bg-teal-700 transition-colors"></span>
+                                              <span className="w-1 h-1 rounded-full bg-muted-foreground/10 group-hover:bg-teal-300 dark:group-hover:bg-teal-700 transition-colors"></span>
                                           )}
                                       </div>
 
@@ -340,11 +338,11 @@ export default function MonthlyMealGrid({
                                           onClick={() => openEditModal(user.id, day, 'Dinner')}
                                       >
                                           {dinnerWeight > 0 ? (
-                                              <Badge className="h-7 w-7 min-w-7 p-0 flex items-center justify-center rounded-full bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-sm border-none text-xs">
+                                              <Badge className="h-5 w-5 min-w-5 p-0 flex items-center justify-center rounded-full bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-sm border-none text-[9px]">
                                                   {dinnerWeight}
                                               </Badge>
                                           ) : (
-                                              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20 group-hover:bg-orange-300 dark:group-hover:bg-orange-700 transition-colors"></span>
+                                              <span className="w-1 h-1 rounded-full bg-muted-foreground/10 group-hover:bg-orange-300 dark:group-hover:bg-orange-700 transition-colors"></span>
                                           )}
                                       </div>
                                   </div>
@@ -356,7 +354,7 @@ export default function MonthlyMealGrid({
               })}
             </TableBody>
             <TableFooter>
-                <TableRow className="bg-teal-100 dark:bg-teal-900/50 font-bold sticky bottom-0 z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] border-t-2 border-teal-200 dark:border-teal-800">
+                <TableRow className="bg-teal-100 dark:bg-teal-900/50 font-bold sticky bottom-0 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] border-t-2 border-teal-200 dark:border-teal-800">
                     <TableCell className="sticky left-0 bg-teal-100 dark:bg-teal-900 border-r border-teal-200 dark:border-teal-800 p-3 text-center shadow-[2px_0_5px_rgba(0,0,0,0.05)] text-teal-900 dark:text-teal-100">Total</TableCell>
                     {users.map(user => {
                         const userMeals = optimisticMeals.filter(m => m.user_id === user.id)
@@ -377,7 +375,7 @@ export default function MonthlyMealGrid({
                     })}
                 </TableRow>
             </TableFooter>
-          </Table>
+          </table>
         </div>
 
 
