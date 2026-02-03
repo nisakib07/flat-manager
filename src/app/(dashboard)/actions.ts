@@ -609,3 +609,26 @@ export async function batchUpdateUtilities(updates: UtilityUpdate[]) {
   revalidatePath('/utilities')
   return { success: true }
 }
+
+export async function addFundTransfer(formData: FormData) {
+  const supabase = await createClient()
+  
+  const shopper_id = formData.get('shopper_id') as string
+  const amount = Number(formData.get('amount'))
+  const transfer_date = formData.get('transfer_date') as string
+  
+  const { error } = await supabase
+    .from('fund_transfers')
+    .insert({
+      shopper_id,
+      amount,
+      transfer_date
+    })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/shopping')
+  return { success: true }
+}

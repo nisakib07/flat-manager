@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider"
+import { SWRProvider } from "@/providers/swr-provider"
+import { AppDataProvider } from "@/providers/app-data-provider"
 
 const inter = Inter({
   variable: "--font-inter",
@@ -43,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
@@ -56,7 +58,11 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <SWRProvider>
+              <AppDataProvider>
+                {children}
+              </AppDataProvider>
+            </SWRProvider>
           </ThemeProvider>
       </body>
     </html>

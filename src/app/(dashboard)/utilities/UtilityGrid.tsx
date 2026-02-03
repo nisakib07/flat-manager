@@ -179,7 +179,8 @@ export default function UtilityGrid({
         )}
       </div>
 
-      <Card className="shadow-md border-teal-100 dark:border-teal-900/50 overflow-hidden">
+      {/* Desktop/Tablet Table View */}
+      <Card className="hidden md:block shadow-md border-teal-100 dark:border-teal-900/50 overflow-hidden">
         <div className="overflow-x-auto">
           <Table className="relative border-separate border-spacing-0">
             <TableHeader className="sticky top-0 z-20 bg-background shadow-md">
@@ -307,6 +308,111 @@ export default function UtilityGrid({
           </Table>
         </div>
       </Card>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-4">
+        {UTILITY_TYPES.map((utility) => {
+          const collected = getTotalCollected(utility)
+          const paid = getEffectiveBill(utility)
+          const remaining = collected - paid
+          
+          const billKey = getKey('bill', utility)
+          const isPaidEditing = activeCell === billKey
+
+          return (
+            <Card key={utility} className="p-4 border shadow-sm">
+                <div className="flex items-start justify-between mb-4">
+                    <div>
+                        <h3 className="font-bold text-lg text-teal-700 dark:text-teal-400">{utility}</h3>
+                        <div className="flex gap-3 text-sm mt-1">
+                            <span className="text-orange-600 dark:text-orange-400 font-medium">Collected: {collected}</span>
+                            <span className="text-muted-foreground">|</span>
+                            <span className={cn("font-bold", remaining < 0 ? "text-red-500" : "text-emerald-600")}>
+                                {remaining < 0 ? `Short: ${Math.abs(remaining)}` : `Surplus: ${remaining}`}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    {/* Bill Payment Input */}
+                    <div className="bg-orange-50/50 dark:bg-orange-900/10 p-3 rounded-lg border border-orange-100 dark:border-orange-800/30">
+                        <label className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider mb-1 block">
+                            Paid Bill Amount
+                        </label>
+                        {isPaidEditing ? (
+                             <Input
+                                type="number"
+                                inputMode="decimal"
+                                className="w-full h-10 border-orange-200 focus:ring-orange-500 font-bold text-lg"
+                                value={inputValues[billKey] || ''}
+                                onChange={(e) => handleChange(e, 'bill', utility)}
+                                onBlur={handleBlur}
+                                onKeyDown={handleKeyDown}
+                                autoFocus
+                              />
+                        ) : (
+                            <div 
+                                onClick={() => isAdmin && handleCellClick(billKey, paid)}
+                                className={cn(
+                                    "text-xl font-black",
+                                    isAdmin ? "cursor-pointer hover:text-orange-700" : ""
+                                )}
+                            >
+                                ৳{paid.toLocaleString()}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Member Collections Accordion */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
+                            Member Collections
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                             {users.map(user => {
+                                const key = getKey('collection', utility, user.id)
+                                const isEditing = activeCell === key
+                                const amount = isEditing ? parseFloat(inputValues[key]) : getEffectiveCollection(utility, user.id)
+                                const hasEdit = !!edits[key]
+
+                                return (
+                                    <div 
+                                        key={user.id}
+                                        className={cn(
+                                            "p-2 rounded-lg border flex flex-col items-center justify-center transition-all min-h-[70px]",
+                                            hasEdit ? "bg-yellow-50 border-yellow-200" : "bg-muted/20 border-border/50",
+                                            isEditing ? "ring-2 ring-blue-500 border-transparent bg-background" : ""
+                                        )}
+                                        onClick={() => !isEditing && isAdmin && handleCellClick(key, amount)}
+                                    >   
+                                        <span className="text-xs text-muted-foreground mb-1 truncate max-w-full">{user.name}</span>
+                                        {isEditing ? (
+                                            <Input
+                                                type="number"
+                                                inputMode="decimal"
+                                                className="h-8 text-center px-1 font-bold"
+                                                value={inputValues[key] || ''}
+                                                onChange={(e) => handleChange(e, 'collection', utility, user.id)}
+                                                onBlur={handleBlur}
+                                                onKeyDown={handleKeyDown}
+                                                autoFocus
+                                            />
+                                        ) : (
+                                            <span className={cn("font-bold text-lg", amount > 0 ? "text-foreground" : "text-muted-foreground/30")}>
+                                                {amount > 0 ? amount : '-'}
+                                            </span>
+                                        )}
+                                    </div>
+                                )
+                             })}
+                        </div>
+                    </div>
+                </div>
+            </Card>
+          )
+        })}
+      </div>
 
       {/* Floating Save Button */}
       {hasChanges && (

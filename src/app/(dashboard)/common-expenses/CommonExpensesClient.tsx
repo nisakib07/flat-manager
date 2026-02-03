@@ -114,82 +114,140 @@ export default function CommonExpensesClient({ expenses, isAdmin, users }: Commo
         )}
       </div>
 
-        <Card className="shadow-md border-teal-100 dark:border-teal-900/50 overflow-hidden">
-            <div className="overflow-x-auto">
-                <Table className="table-fixed">
-                    <TableHeader className="bg-teal-50/50 dark:bg-teal-950/20">
-                        <TableRow>
-                            <TableHead className="w-[180px] font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider">Item Description</TableHead>
-                            <TableHead className="w-[120px] !text-right font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider bg-teal-100/30 dark:bg-teal-900/10">Total Cost</TableHead>
-                            {users.map(user => (
-                                <TableHead key={user.id} className="!text-right font-bold text-teal-600 dark:text-teal-500 uppercase text-xs tracking-wider min-w-[100px]">
-                                    {user.name}
-                                </TableHead>
-                            ))}
-                            {isAdmin && <TableHead className="w-[100px] !text-center font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider">Actions</TableHead>}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {expenses.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={2 + users.length + (isAdmin ? 1 : 0)} className="h-24 text-center text-muted-foreground">
-                                    No common expenses added yet.
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            expenses.map((expense) => (
-                                <TableRow key={expense.id} className="hover:bg-muted/50 transition-colors">
-                                    <TableCell className="font-medium">
-                                        <div className="flex items-center gap-2">
-                                            <div className="p-2 rounded-full bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400">
-                                                 <Receipt className="w-4 h-4" />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span>{expense.expense_name}</span>
-                                                <span className="text-[10px] text-muted-foreground">
-                                                    {new Date(expense.month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right font-bold text-teal-600 dark:text-teal-400 bg-teal-50/30 dark:bg-teal-900/5">
-                                        ৳{expense.total_cost}
-                                    </TableCell>
-                                    {users.map(user => (
-                                        <TableCell key={user.id} className="text-right text-muted-foreground text-sm">
-                                            ৳{expense.user_share.toFixed(2)}
-                                        </TableCell>
-                                    ))}
-                                    {isAdmin && (
-                                        <TableCell className="text-center">
-                                            <div className="flex justify-center gap-1">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" onClick={() => openEditModal(expense)}>
-                                                    <Pencil className="w-3.5 h-3.5" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(expense.id)}>
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    )}
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                    <TableFooter className="bg-teal-50 dark:bg-teal-950/30 border-t-2 border-teal-100 dark:border-teal-900">
-                        <TableRow>
-                            <TableCell className="font-bold text-teal-800 dark:text-teal-200">Total</TableCell>
-                            <TableCell className="text-right font-black text-teal-700 dark:text-teal-300 text-lg">৳{totalCost.toLocaleString()}</TableCell>
-                            {users.map(user => (
-                                <TableCell key={user.id} className="text-right font-bold text-teal-600 dark:text-teal-400">
-                                    ৳{perUserTotal.toFixed(2)}
-                                </TableCell>
-                            ))}
-                            {isAdmin && <TableCell />}
-                        </TableRow>
-                    </TableFooter>
-                </Table>
-            </div>
+      <Card className="shadow-md border-teal-100 dark:border-teal-900/50 bg-transparent sm:bg-card border-none sm:border">
+          {/* Desktop Table View */}
+          <div className="overflow-x-auto hidden md:block">
+              <Table className="table-fixed">
+                  <TableHeader className="bg-teal-50/50 dark:bg-teal-950/20">
+                      <TableRow>
+                          <TableHead className="w-[180px] font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider">Item Description</TableHead>
+                          <TableHead className="w-[120px] !text-right font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider bg-teal-100/30 dark:bg-teal-900/10">Total Cost</TableHead>
+                          {users.map(user => (
+                              <TableHead key={user.id} className="!text-right font-bold text-teal-600 dark:text-teal-500 uppercase text-xs tracking-wider min-w-[100px]">
+                                  {user.name}
+                              </TableHead>
+                          ))}
+                          {isAdmin && <TableHead className="w-[100px] !text-center font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider">Actions</TableHead>}
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      {expenses.length === 0 ? (
+                          <TableRow>
+                              <TableCell colSpan={2 + users.length + (isAdmin ? 1 : 0)} className="h-24 text-center text-muted-foreground">
+                                  No common expenses added yet.
+                              </TableCell>
+                          </TableRow>
+                      ) : (
+                          expenses.map((expense) => (
+                              <TableRow key={expense.id} className="hover:bg-muted/50 transition-colors">
+                                  <TableCell className="font-medium">
+                                      <div className="flex items-center gap-2">
+                                          <div className="p-2 rounded-full bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400">
+                                                <Receipt className="w-4 h-4" />
+                                          </div>
+                                          <div className="flex flex-col">
+                                              <span>{expense.expense_name}</span>
+                                              <span className="text-[10px] text-muted-foreground">
+                                                  {new Date(expense.month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                              </span>
+                                          </div>
+                                      </div>
+                                  </TableCell>
+                                  <TableCell className="text-right font-bold text-teal-600 dark:text-teal-400 bg-teal-50/30 dark:bg-teal-900/5">
+                                      ৳{expense.total_cost}
+                                  </TableCell>
+                                  {users.map(user => (
+                                      <TableCell key={user.id} className="text-right text-muted-foreground text-sm">
+                                          ৳{expense.user_share.toFixed(2)}
+                                      </TableCell>
+                                  ))}
+                                  {isAdmin && (
+                                      <TableCell className="text-center">
+                                          <div className="flex justify-center gap-1">
+                                              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" onClick={() => openEditModal(expense)}>
+                                                  <Pencil className="w-3.5 h-3.5" />
+                                              </Button>
+                                              <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(expense.id)}>
+                                                  <Trash2 className="w-3.5 h-3.5" />
+                                              </Button>
+                                          </div>
+                                      </TableCell>
+                                  )}
+                              </TableRow>
+                          ))
+                      )}
+                  </TableBody>
+                  <TableFooter className="bg-teal-50 dark:bg-teal-950/30 border-t-2 border-teal-100 dark:border-teal-900">
+                      <TableRow>
+                          <TableCell className="font-bold text-teal-800 dark:text-teal-200">Total</TableCell>
+                          <TableCell className="text-right font-black text-teal-700 dark:text-teal-300 text-lg">৳{totalCost.toLocaleString()}</TableCell>
+                          {users.map(user => (
+                              <TableCell key={user.id} className="text-right font-bold text-teal-600 dark:text-teal-400">
+                                  ৳{perUserTotal.toFixed(2)}
+                              </TableCell>
+                          ))}
+                          {isAdmin && <TableCell />}
+                      </TableRow>
+                  </TableFooter>
+              </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+              {expenses.length === 0 ? (
+                  <div className="text-center py-10 border rounded-xl border-dashed">
+                      <p className="text-muted-foreground">No common expenses.</p>
+                  </div>
+              ) : (
+                  expenses.map((expense) => (
+                      <Card key={expense.id} className="overflow-hidden border shadow-sm">
+                          <div className="p-4 flex items-start justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 rounded-full bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center text-teal-600">
+                                      <Receipt className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                      <h3 className="font-bold text-foreground leading-tight">{expense.expense_name}</h3>
+                                      <p className="text-xs text-muted-foreground mt-0.5">
+                                          {new Date(expense.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                      </p>
+                                  </div>
+                              </div>
+                              <div className="text-right">
+                                  <div className="text-xl font-black text-teal-600 dark:text-teal-400">৳{expense.total_cost}</div>
+                                  <div className="text-xs text-muted-foreground">Total Cost</div>
+                              </div>
+                          </div>
+                          
+                          <div className="px-4 pb-4">
+                              <div className="bg-muted/30 rounded-lg p-3">
+                                  <div className="flex justify-between items-center mb-2">
+                                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Per person share</span>
+                                      <span className="font-bold text-foreground">৳{expense.user_share.toFixed(2)}</span>
+                                  </div>
+                                  <div className="h-1 w-full bg-teal-100 dark:bg-teal-900 rounded-full overflow-hidden">
+                                      <div className="h-full bg-teal-500 w-full opacity-50"></div>
+                                  </div>
+                                  <div className="mt-2 text-[10px] text-muted-foreground text-center">
+                                      Split equally among {users.length} members
+                                  </div>
+                              </div>
+                          </div>
+
+                          {isAdmin && (
+                              <div className="px-2 py-2 bg-muted/10 border-t flex justify-end gap-2">
+                                  <Button variant="ghost" size="sm" className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEditModal(expense)}>
+                                      <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(expense.id)}>
+                                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+                                  </Button>
+                              </div>
+                          )}
+                      </Card>
+                  ))
+              )}
+          </div>
         </Card>
 
       {/* Add/Edit Dialog */}

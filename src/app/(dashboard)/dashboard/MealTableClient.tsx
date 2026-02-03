@@ -184,27 +184,28 @@ export default function MealTableClient({
   const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || ''
 
   return (
-    <Card className="overflow-hidden bg-background border-none shadow-none lg:border lg:shadow-sm">
+    <Card className="overflow-hidden bg-background border-none shadow-none lg:border lg:shadow-sm w-full max-w-full">
       {/* Header Section - Sticky on Mobile */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b p-3 flex items-center justify-between gap-3 lg:static lg:border-b-0 lg:p-6 lg:bg-transparent">
-        <CardTitle className="text-lg lg:text-xl font-semibold flex items-center gap-2">
-            <Utensils className="h-5 w-5 text-primary" />
-            <span>Daily Meals</span>
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b p-3 flex items-center gap-3 sm:gap-4 lg:static lg:border-b-0 lg:p-6 lg:bg-transparent">
+        <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold flex items-center gap-2 shrink-0">
+            <Utensils className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+            <span className="truncate">Daily Meals</span>
         </CardTitle>
+        <div className="h-6 w-px bg-border hidden sm:block"></div>
         <Input 
           type="date" 
           value={date} 
           onChange={(e) => setDate(e.target.value)}
-          className="h-8 w-auto min-w-[120px] px-2 text-xs bg-muted/20 border-muted-foreground/20"
+          className="h-8 w-[150px] px-2 text-xs bg-muted/20 border-muted-foreground/20 shadow-sm focus:bg-background transition-colors rounded-lg font-medium"
         />
       </div>
       
       {/* Meal Type Selection (Admin Only) */}
       {isAdmin && (
-        <div className="px-4 pb-4 lg:px-6 lg:pb-6 pt-4">
-          <div className="grid gap-3 sm:gap-6 sm:grid-cols-2 p-4 rounded-xl bg-muted/30 border border-border/50">
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+        <div className="px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4 lg:pb-6 pt-3 sm:pt-4">
+          <div className="grid gap-2 sm:gap-3 sm:grid-cols-2 p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/50">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 sm:gap-2">
                 <Sun className="h-3 w-3" /> Lunch
               </Label>
               <Select 
@@ -212,7 +213,7 @@ export default function MealTableClient({
                 onValueChange={(val) => handleMealTypeChange('Lunch', val)}
                 disabled={isPending}
               >
-                <SelectTrigger className="h-10 bg-background border-teal-200/50 focus:ring-teal-500/20">
+                <SelectTrigger className="h-9 sm:h-10 bg-background border-teal-200/50 focus:ring-teal-500/20 text-sm">
                   <SelectValue placeholder="Select Meal..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -224,8 +225,8 @@ export default function MealTableClient({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 sm:gap-2">
                 <Moon className="h-3 w-3" /> Dinner
               </Label>
               <Select 
@@ -233,7 +234,7 @@ export default function MealTableClient({
                 onValueChange={(val) => handleMealTypeChange('Dinner', val)}
                 disabled={isPending}
               >
-                <SelectTrigger className="h-10 bg-background border-orange-200/50 focus:ring-orange-500/20">
+                <SelectTrigger className="h-9 sm:h-10 bg-background border-orange-200/50 focus:ring-orange-500/20 text-sm">
                   <SelectValue placeholder="Select Meal..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -378,16 +379,16 @@ export default function MealTableClient({
       </div>
 
       {/* MOBILE VIEW: Cards */}
-      <div className="lg:hidden space-y-3 px-2 pb-20">
+      <div className="lg:hidden space-y-2 pb-20">
          {/* Totals Summary */}
-         <div className="grid grid-cols-2 gap-2 mb-4">
-            <div className="bg-teal-50/50 dark:bg-teal-900/20 p-2 rounded-xl border border-teal-100 dark:border-teal-800 text-center">
-                <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase block mb-1">Total Lunch</span>
+         <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="bg-teal-50/50 dark:bg-teal-900/20 p-2.5 rounded-xl border border-teal-100 dark:border-teal-800 text-center">
+                <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase block mb-0.5">Total Lunch</span>
                 <span className="text-xl font-black text-teal-700 dark:text-teal-300">{lunchTotal}</span>
                 <span className="text-[10px] text-muted-foreground ml-1">({lunchCount})</span>
             </div>
-            <div className="bg-orange-50/50 dark:bg-orange-900/20 p-2 rounded-xl border border-orange-100 dark:border-orange-800 text-center">
-                <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase block mb-1">Total Dinner</span>
+            <div className="bg-orange-50/50 dark:bg-orange-900/20 p-2.5 rounded-xl border border-orange-100 dark:border-orange-800 text-center">
+                <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase block mb-0.5">Total Dinner</span>
                 <span className="text-xl font-black text-orange-700 dark:text-orange-300">{dinnerTotal}</span>
                 <span className="text-[10px] text-muted-foreground ml-1">({dinnerCount})</span>
             </div>
@@ -395,22 +396,22 @@ export default function MealTableClient({
 
          {/* Mobile Toggle All Actions */}
          {isAdmin && (
-             <div className="grid grid-cols-2 gap-2 mb-4 border-b border-dashed pb-4">
+             <div className="grid grid-cols-2 gap-2 mb-3 pb-3 border-b border-dashed">
                  <Button 
                     variant="outline" 
                     size="sm"
-                    className="w-full text-xs text-teal-600 border-teal-200 h-8"
+                    className="w-full text-[11px] text-teal-600 border-teal-200 h-8 active:scale-95 transition-transform"
                     onClick={() => handleToggleAll('Lunch')}
                  >
-                    {allLunchSelected ? 'Unselect' : 'Select All'}
+                    {allLunchSelected ? '✓ All' : 'Select All'}
                  </Button>
                  <Button 
                     variant="outline" 
                     size="sm"
-                    className="w-full text-xs text-orange-600 border-orange-200 h-8"
+                    className="w-full text-[11px] text-orange-600 border-orange-200 h-8 active:scale-95 transition-transform"
                     onClick={() => handleToggleAll('Dinner')}
                  >
-                    {allDinnerSelected ? 'Unselect' : 'Select All'}
+                    {allDinnerSelected ? '✓ All' : 'Select All'}
                  </Button>
              </div>
          )}
@@ -421,22 +422,23 @@ export default function MealTableClient({
             const dinnerMealEntry = getUserMeal(user.id, 'Dinner')
 
             return (
-                <div key={user.id} className="bg-card p-3 rounded-xl border shadow-sm flex items-center justify-between gap-3">
-                    <div className="font-semibold text-base min-w-[25%] truncate">{user.name}</div>
+                <div key={user.id} className="bg-card p-2.5 rounded-lg border shadow-sm flex items-center gap-2 active:scale-[0.98] transition-transform">
+                    <div className="font-medium text-sm min-w-[30%] max-w-[35%] truncate">{user.name}</div>
                     
-                    <div className="flex gap-2 flex-1 justify-end">
+                    <div className="flex gap-2 flex-1">
                         {/* Lunch Button */}
                         <div 
                              onClick={() => isAdmin && openEditModal(user.id, 'Lunch')}
                              className={cn(
-                                "flex-1 h-12 rounded-lg flex flex-col items-center justify-center transition-all border cursor-pointer",
+                                "flex-1 h-12 rounded-lg flex flex-col items-center justify-center transition-all border active:scale-95",
                                 !isAdmin && "pointer-events-none opacity-90",
+                                isAdmin && "cursor-pointer",
                                 lunchMealEntry 
-                                    ? "bg-teal-500 text-white border-teal-600 shadow-md" 
-                                    : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted"
+                                    ? "bg-teal-500 text-white border-teal-600 shadow-sm" 
+                                    : "bg-muted/30 text-muted-foreground border-transparent"
                              )}
                         >
-                            <span className="text-[9px] uppercase font-bold tracking-wider opacity-80">Lunch</span>
+                            <span className="text-[8px] uppercase font-bold tracking-wider opacity-80">Lunch</span>
                             <span className="text-lg font-black leading-none">{lunchMealEntry ? lunchMealEntry.meal_weight : '-'}</span>
                         </div>
 
@@ -444,14 +446,15 @@ export default function MealTableClient({
                         <div 
                              onClick={() => isAdmin && openEditModal(user.id, 'Dinner')}
                              className={cn(
-                                "flex-1 h-12 rounded-lg flex flex-col items-center justify-center transition-all border cursor-pointer",
+                                "flex-1 h-12 rounded-lg flex flex-col items-center justify-center transition-all border active:scale-95",
                                 !isAdmin && "pointer-events-none opacity-90",
+                                isAdmin && "cursor-pointer",
                                 dinnerMealEntry 
-                                    ? "bg-orange-500 text-white border-orange-600 shadow-md" 
-                                    : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted"
+                                    ? "bg-orange-500 text-white border-orange-600 shadow-sm" 
+                                    : "bg-muted/30 text-muted-foreground border-transparent"
                              )}
                         >
-                            <span className="text-[9px] uppercase font-bold tracking-wider opacity-80">Dinner</span>
+                            <span className="text-[8px] uppercase font-bold tracking-wider opacity-80">Dinner</span>
                             <span className="text-lg font-black leading-none">{dinnerMealEntry ? dinnerMealEntry.meal_weight : '-'}</span>
                         </div>
                     </div>

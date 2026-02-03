@@ -99,6 +99,14 @@ export interface UtilityCollection {
   created_at: string
 }
 
+export interface FundTransfer {
+  id: string
+  amount: number
+  shopper_id: string
+  transfer_date: string
+  created_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -141,6 +149,11 @@ export interface Database {
         Row: MonthlyBalance
         Insert: Omit<MonthlyBalance, 'id' | 'created_at'>
         Update: Partial<Omit<MonthlyBalance, 'id' | 'created_at'>>
+      }
+      fund_transfers: {
+        Row: FundTransfer
+        Insert: Omit<FundTransfer, 'id' | 'created_at'>
+        Update: Partial<Omit<FundTransfer, 'id' | 'created_at'>>
       }
     }
   }

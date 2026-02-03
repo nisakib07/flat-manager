@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import MonthlyMealGrid from './MonthlyMealGrid'
 
+// Extended caching - 5 minutes for instant tab switching
+export const revalidate = 300
+
 export default async function MealsPage() {
   const supabase = await createClient()
   

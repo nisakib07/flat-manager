@@ -92,8 +92,9 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
         </div>
       </div>
 
-      <Card className="shadow-md border-teal-100 dark:border-teal-900/50 overflow-hidden">
-        <div className="overflow-x-auto">
+      <Card className="shadow-md border-teal-100 dark:border-teal-900/50 bg-transparent sm:bg-card border-none sm:border">
+        {/* Desktop Table View */}
+        <div className="overflow-x-auto hidden md:block">
           <Table className="min-w-[1200px]">
             <TableHeader className="bg-teal-50/50 dark:bg-teal-950/20">
               <TableRow>
@@ -110,15 +111,6 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
             <TableBody>
               {users.map((user) => {
                 const deposit = deposits.find(d => d.user_id === user.id)
-                // If the user is the current user or admin, they can edit. 
-                // Wait, typically only Admin tracks deposits? Or users can self-report?
-                // Assuming Admin controls deposits for consistency, or maybe trusted users.
-                // Let's allow Admin only for now based on "Manager" vibe, or all users if "Flat Manager" implies shared responsibility.
-                // The previous code allowed users to add deposits. Let's assume Admin only for "editing" grid to be safe, or check permissions.
-                // The prompt didn't specify, but usually "Manager" apps = Admin enters money.
-                // However, I'll allow `isAdmin` to edit ALL, and `currentUserId` to edit THEIR OWN?
-                // Actually, for a grid view like this, it's safer if only Admin edits to prevent conflicts, or trusted.
-                // I will enable inputs for everyone for now, but usually this is an Admin features.
                 const canEdit = isAdmin; 
 
                 return (
@@ -164,8 +156,68 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
                 )
               })}
             </TableBody>
-
           </Table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4">
+             {users.map((user) => {
+                const deposit = deposits.find(d => d.user_id === user.id)
+                const canEdit = isAdmin;
+                const userTotal = getRowTotal(user.id);
+
+                return (
+                    <Card key={user.id} className="overflow-hidden border shadow-sm">
+                        <div className="px-4 py-3 border-b flex justify-between items-center bg-muted/20">
+                            <h3 className="font-bold text-lg">{user.name}</h3>
+                            <Badge variant="outline" className="bg-teal-50 text-teal-700 border-teal-200 text-sm font-black px-2 py-0.5">
+                                ৳{userTotal.toLocaleString()}
+                            </Badge>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            {/* Carry Forward */}
+                            <div className="bg-orange-50/30 rounded-lg p-3 border border-orange-100/50">
+                                <label className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-1 block">Carry Forward</label>
+                                <Input 
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    disabled={!canEdit}
+                                    defaultValue={deposit?.carry_forward || ''}
+                                    placeholder="0"
+                                    className="h-10 border-orange-200 focus:ring-orange-500 font-bold bg-white"
+                                    onBlur={(e) => handleUpdate(user.id, 'carry_forward', e.target.value)}
+                                />
+                            </div>
+
+                            {/* Deposit Slots Grid */}
+                            <div className="grid grid-cols-4 gap-2">
+                                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => {
+                                    const key = `d${i}` as keyof MealDeposit;
+                                    // @ts-ignore
+                                    const val = deposit?.[key] as number;
+                                    
+                                    return (
+                                        <div key={i} className="flex flex-col gap-1">
+                                            <label className="text-[10px] text-center font-medium text-muted-foreground">D{i}</label>
+                                            <Input 
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                className="h-9 px-1 text-center font-medium bg-muted/10 border-border/60 focus:bg-white transition-colors"
+                                                placeholder="-"
+                                                disabled={!canEdit}
+                                                defaultValue={val || ''}
+                                                onBlur={(e) => handleUpdate(user.id, `d${i}` as any, e.target.value)}
+                                            />
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </Card>
+                )
+             })}
         </div>
       </Card>
       
