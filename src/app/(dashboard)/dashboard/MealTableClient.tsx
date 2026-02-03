@@ -38,7 +38,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { Moon, Sun, Utensils } from 'lucide-react'
 
 interface MealTableClientProps {
   users: User[]
@@ -182,35 +184,35 @@ export default function MealTableClient({
   const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || ''
 
   return (
-    <Card className="overflow-hidden">
-      {/* Card Header */}
-      <CardHeader>
-        <div className="flex items-center gap-100 justify-between">
-          <CardTitle className="text-xl font-semibold flex items-center gap-3">
-            <span>🍽️</span> 
-            <span className="whitespace-nowrap">Daily Meal List</span>
-          </CardTitle>
-          <Input 
-            type="date" 
-            value={date} 
-            onChange={(e) => setDate(e.target.value)}
-            className="h-9 px-2 text-sm"
-          />
-        </div>
-      </CardHeader>
+    <Card className="overflow-hidden bg-background border-none shadow-none lg:border lg:shadow-sm">
+      {/* Header Section - Sticky on Mobile */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b p-3 flex items-center justify-between gap-3 lg:static lg:border-b-0 lg:p-6 lg:bg-transparent">
+        <CardTitle className="text-lg lg:text-xl font-semibold flex items-center gap-2">
+            <Utensils className="h-5 w-5 text-primary" />
+            <span>Daily Meals</span>
+        </CardTitle>
+        <Input 
+          type="date" 
+          value={date} 
+          onChange={(e) => setDate(e.target.value)}
+          className="h-8 w-auto min-w-[120px] px-2 text-xs bg-muted/20 border-muted-foreground/20"
+        />
+      </div>
       
       {/* Meal Type Selection (Admin Only) */}
       {isAdmin && (
-        <div className="px-6 pb-6">
-          <div className="grid gap-6 sm:grid-cols-2 p-5 rounded-xl bg-muted/30 border border-border/50">
-            <div className="space-y-3">
-              <Label className="text-sm font-medium block pb-1">Lunch Type</Label>
+        <div className="px-4 pb-4 lg:px-6 lg:pb-6 pt-4">
+          <div className="grid gap-3 sm:gap-6 sm:grid-cols-2 p-4 rounded-xl bg-muted/30 border border-border/50">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Sun className="h-3 w-3" /> Lunch
+              </Label>
               <Select 
                 value={lunchMeal?.meal_type_id || ''} 
                 onValueChange={(val) => handleMealTypeChange('Lunch', val)}
                 disabled={isPending}
               >
-                <SelectTrigger className="h-11 bg-background">
+                <SelectTrigger className="h-10 bg-background border-teal-200/50 focus:ring-teal-500/20">
                   <SelectValue placeholder="Select Meal..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -222,14 +224,16 @@ export default function MealTableClient({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-3">
-              <Label className="text-sm font-medium block pb-1">Dinner Type</Label>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Moon className="h-3 w-3" /> Dinner
+              </Label>
               <Select 
                 value={dinnerMeal?.meal_type_id || ''} 
                 onValueChange={(val) => handleMealTypeChange('Dinner', val)}
                 disabled={isPending}
               >
-                <SelectTrigger className="h-11 bg-background">
+                <SelectTrigger className="h-10 bg-background border-orange-200/50 focus:ring-orange-500/20">
                   <SelectValue placeholder="Select Meal..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -245,8 +249,8 @@ export default function MealTableClient({
         </div>
       )}
       
-      {/* Meal Attendance Table */}
-      <CardContent>
+      {/* DESKTOP VIEW: Table */}
+      <div className="hidden lg:block px-6 pb-6">
         <div className="rounded-xl border border-teal-100 dark:border-teal-900/50 overflow-hidden shadow-sm">
           <Table>
             <TableHeader className="bg-teal-50/50 dark:bg-teal-950/20">
@@ -371,7 +375,90 @@ export default function MealTableClient({
             </TableFooter>
           </Table>
         </div>
-      </CardContent>
+      </div>
+
+      {/* MOBILE VIEW: Cards */}
+      <div className="lg:hidden space-y-3 px-2 pb-20">
+         {/* Totals Summary */}
+         <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="bg-teal-50/50 dark:bg-teal-900/20 p-2 rounded-xl border border-teal-100 dark:border-teal-800 text-center">
+                <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase block mb-1">Total Lunch</span>
+                <span className="text-xl font-black text-teal-700 dark:text-teal-300">{lunchTotal}</span>
+                <span className="text-[10px] text-muted-foreground ml-1">({lunchCount})</span>
+            </div>
+            <div className="bg-orange-50/50 dark:bg-orange-900/20 p-2 rounded-xl border border-orange-100 dark:border-orange-800 text-center">
+                <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase block mb-1">Total Dinner</span>
+                <span className="text-xl font-black text-orange-700 dark:text-orange-300">{dinnerTotal}</span>
+                <span className="text-[10px] text-muted-foreground ml-1">({dinnerCount})</span>
+            </div>
+         </div>
+
+         {/* Mobile Toggle All Actions */}
+         {isAdmin && (
+             <div className="grid grid-cols-2 gap-2 mb-4 border-b border-dashed pb-4">
+                 <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="w-full text-xs text-teal-600 border-teal-200 h-8"
+                    onClick={() => handleToggleAll('Lunch')}
+                 >
+                    {allLunchSelected ? 'Unselect' : 'Select All'}
+                 </Button>
+                 <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="w-full text-xs text-orange-600 border-orange-200 h-8"
+                    onClick={() => handleToggleAll('Dinner')}
+                 >
+                    {allDinnerSelected ? 'Unselect' : 'Select All'}
+                 </Button>
+             </div>
+         )}
+
+         {/* User Cards */}
+         {users.map(user => {
+            const lunchMealEntry = getUserMeal(user.id, 'Lunch')
+            const dinnerMealEntry = getUserMeal(user.id, 'Dinner')
+
+            return (
+                <div key={user.id} className="bg-card p-3 rounded-xl border shadow-sm flex items-center justify-between gap-3">
+                    <div className="font-semibold text-base min-w-[25%] truncate">{user.name}</div>
+                    
+                    <div className="flex gap-2 flex-1 justify-end">
+                        {/* Lunch Button */}
+                        <div 
+                             onClick={() => isAdmin && openEditModal(user.id, 'Lunch')}
+                             className={cn(
+                                "flex-1 h-12 rounded-lg flex flex-col items-center justify-center transition-all border cursor-pointer",
+                                !isAdmin && "pointer-events-none opacity-90",
+                                lunchMealEntry 
+                                    ? "bg-teal-500 text-white border-teal-600 shadow-md" 
+                                    : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted"
+                             )}
+                        >
+                            <span className="text-[9px] uppercase font-bold tracking-wider opacity-80">Lunch</span>
+                            <span className="text-lg font-black leading-none">{lunchMealEntry ? lunchMealEntry.meal_weight : '-'}</span>
+                        </div>
+
+                        {/* Dinner Button */}
+                        <div 
+                             onClick={() => isAdmin && openEditModal(user.id, 'Dinner')}
+                             className={cn(
+                                "flex-1 h-12 rounded-lg flex flex-col items-center justify-center transition-all border cursor-pointer",
+                                !isAdmin && "pointer-events-none opacity-90",
+                                dinnerMealEntry 
+                                    ? "bg-orange-500 text-white border-orange-600 shadow-md" 
+                                    : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted"
+                             )}
+                        >
+                            <span className="text-[9px] uppercase font-bold tracking-wider opacity-80">Dinner</span>
+                            <span className="text-lg font-black leading-none">{dinnerMealEntry ? dinnerMealEntry.meal_weight : '-'}</span>
+                        </div>
+                    </div>
+                </div>
+            )
+         })}
+      </div>
 
       {/* Edit Modal (Dialog) */}
       <Dialog open={!!editingMeal} onOpenChange={(open) => !open && setEditingMeal(null)}>

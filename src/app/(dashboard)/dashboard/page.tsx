@@ -99,7 +99,7 @@ export default async function DashboardPage() {
       {/* Main Content Grid */}
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Left Column - Meal Table (spans 2 cols on large screens) */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2">
           {/* Meal Table - Main Feature */}
           <MealTableClient
             users={users || []}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useOptimistic, useMemo } from 'react'
 import {
   addMealWithWeight,
   updateMealWeight,
@@ -47,6 +47,10 @@ interface EditingMeal {
   date: string
 }
 
+type OptimisticAction = 
+  | { type: 'add_or_update', meal: MealCost }
+  | { type: 'delete', id: string }
+
 export default function MonthlyMealGrid({
   users,
   monthlyMealCosts,
@@ -56,6 +60,49 @@ export default function MonthlyMealGrid({
   const [isPending, startTransition] = useTransition()
   const [editingMeal, setEditingMeal] = useState<EditingMeal | null>(null)
   const [customWeight, setCustomWeight] = useState('')
+
+  const [optimisticMeals, addOptimisticAction] = useOptimistic(
+    monthlyMealCosts,
+    (state, action: OptimisticAction) => {
+      switch (action.type) {
+        case 'add_or_update':
+          const exists = state.some(
+            m => (m.id === action.meal.id) || 
+                 (m.user_id === action.meal.user_id && 
+                  m.meal_date === action.meal.meal_date && 
+                  m.meal_type === action.meal.meal_type)
+          );
+          
+          if (exists) {
+            return state.map(m => {
+                if (m.id === action.meal.id) return action.meal;
+                // Match by composite key if ID is temp/unknown or just to be safe
+                if (m.user_id === action.meal.user_id && 
+                    m.meal_date === action.meal.meal_date && 
+                    m.meal_type === action.meal.meal_type) {
+                    return { ...m, ...action.meal };
+                }
+                return m;
+            })
+          } else {
+            return [...state, action.meal];
+          }
+        case 'delete':
+          return state.filter(m => m.id !== action.id);
+        default:
+          return state;
+      }
+    }
+  );
+
+  // Optimize lookup with a Map
+  const mealsMap = useMemo(() => {
+    const map = new Map<string, MealCost>();
+    optimisticMeals.forEach(meal => {
+        map.set(`${meal.user_id}-${meal.meal_date}-${meal.meal_type}`, meal);
+    });
+    return map;
+  }, [optimisticMeals]);
 
   // Generate dates for the current month
   const getDaysInMonth = (dateString: string) => {
@@ -72,9 +119,9 @@ export default function MonthlyMealGrid({
 
   const days = getDaysInMonth(selectedDate)
 
-  // Get user's meal for a specific date and time
+  // Get user's meal for a specific date and time - O(1) lookup
   const getUserMeal = (userId: string, date: string, mealTime: 'Lunch' | 'Dinner'): MealCost | undefined => {
-    return monthlyMealCosts.find(m => m.user_id === userId && m.meal_date === date && m.meal_type === mealTime)
+    return mealsMap.get(`${userId}-${date}-${mealTime}`);
   }
 
   function openEditModal(userId: string, date: string, mealTime: 'Lunch' | 'Dinner') {
@@ -95,53 +142,79 @@ export default function MonthlyMealGrid({
 
   async function handleSaveMeal() {
     if (!editingMeal) return
+    const currentEditingMeal = editingMeal; // Capture for closure
     const weight = parseFloat(customWeight) || 0
 
+    // Prepare optimistic meal object
+    const optimisticMeal: MealCost = {
+        id: currentEditingMeal.mealId || `temp-${Date.now()}`,
+        user_id: currentEditingMeal.userId,
+        meal_date: currentEditingMeal.date,
+        meal_type: currentEditingMeal.mealTime,
+        meal_weight: weight,
+        cost: 0,
+        created_at: new Date().toISOString()
+    };
+
+    // CLOSE INSTANTLY
+    setEditingMeal(null)
+
     startTransition(async () => {
-      if (editingMeal.isNew) {
+      // Optimistic Update
+      if (weight > 0) {
+          addOptimisticAction({ type: 'add_or_update', meal: optimisticMeal });
+      } else if (currentEditingMeal.mealId) {
+          // If weight 0, treat as delete
+          addOptimisticAction({ type: 'delete', id: currentEditingMeal.mealId });
+      }
+
+      // Perform Actual Server Action
+      if (currentEditingMeal.isNew) {
         if (weight > 0) { // Only add if weight > 0
-            await addMealWithWeight(editingMeal.userId, editingMeal.date, editingMeal.mealTime, weight)
+            await addMealWithWeight(currentEditingMeal.userId, currentEditingMeal.date, currentEditingMeal.mealTime, weight)
         }
-      } else if (editingMeal.mealId) {
+      } else if (currentEditingMeal.mealId) {
         if (weight === 0) {
-            await deleteMealEntry(editingMeal.mealId)
+            await deleteMealEntry(currentEditingMeal.mealId)
         } else {
-            await updateMealWeight(editingMeal.mealId, weight)
+            await updateMealWeight(currentEditingMeal.mealId, weight)
         }
       }
-      setEditingMeal(null)
     })
   }
 
   async function handleDeleteMeal() {
     if (!editingMeal?.mealId) return
+    const currentEditingMeal = editingMeal; // Capture for closure
+
+    // CLOSE INSTANTLY
+    setEditingMeal(null)
 
     startTransition(async () => {
-      await deleteMealEntry(editingMeal.mealId!)
-      setEditingMeal(null)
+      addOptimisticAction({ type: 'delete', id: currentEditingMeal.mealId! });
+      await deleteMealEntry(currentEditingMeal.mealId!)
     })
   }
 
   async function handleSkipMeal() {
     if (!editingMeal) return
+    const currentEditingMeal = editingMeal; // Capture for closure
+
+    // CLOSE INSTANTLY
+    setEditingMeal(null)
+    
     startTransition(async () => {
-        if (editingMeal.mealId) {
-            // Delete entry implies 0 or just update to 0 if we want to track explicit skips?
-            // Current logic treats delete as 0.
-            // Wait, previous logic was: if weight is 0, delete.
-            // Let's stick to that for consistency, or use specific skip logic if needed.
-            // For now, setting to 0 deletes it, which visually is 'no meal' or 'skip'.
-            // But wait, the '0' feature in MealTableClient ADDED an entry with 0.
-            // We should match that behavior if we want explicit 0s.
-            if (editingMeal.mealId) {
-                await updateMealWeight(editingMeal.mealId, 0)
-            } else {
-                await addMealWithWeight(editingMeal.userId, editingMeal.date, editingMeal.mealTime, 0)
-            }
-        } else {
-             await addMealWithWeight(editingMeal.userId, editingMeal.date, editingMeal.mealTime, 0)
+        // Optimistic delete/skip
+        if (currentEditingMeal.mealId) {
+             addOptimisticAction({ type: 'delete', id: currentEditingMeal.mealId });
         }
-        setEditingMeal(null)
+        
+        // Server Action
+        if (currentEditingMeal.mealId) {
+            await updateMealWeight(currentEditingMeal.mealId, 0)
+        } else {
+            await addMealWithWeight(currentEditingMeal.userId, currentEditingMeal.date, currentEditingMeal.mealTime, 0)
+        }
     })
   }
 
@@ -150,9 +223,9 @@ export default function MonthlyMealGrid({
   // Current month label
   const monthLabel = new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
-  // Calculate totals
-  const totalLunch = monthlyMealCosts.filter(m => m.meal_type === 'Lunch').reduce((sum, m) => sum + Number(m.meal_weight), 0)
-  const totalDinner = monthlyMealCosts.filter(m => m.meal_type === 'Dinner').reduce((sum, m) => sum + Number(m.meal_weight), 0)
+  // Calculate totals - USE OPTIMISTIC DATA
+  const totalLunch = optimisticMeals.filter(m => m.meal_type === 'Lunch').reduce((sum, m) => sum + Number(m.meal_weight), 0)
+  const totalDinner = optimisticMeals.filter(m => m.meal_type === 'Dinner').reduce((sum, m) => sum + Number(m.meal_weight), 0)
   const totalMeals = totalLunch + totalDinner
 
   return (
@@ -216,9 +289,7 @@ export default function MonthlyMealGrid({
                   const dateNum = dateObj.getDate()
                   const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' })
                   const isToday = day === new Date().toISOString().split('T')[0]
-                  const isWeekend = dateObj.getDay() === 5 || dateObj.getDay() === 6 // Fri/Sat in some regions, or Sat/Sun. Let's assume Fri/Sat structure? Or standard Sat/Sun? Using Sat(6)/Sun(0) usually.
-                  // Adjust weekend logic if needed. Let's start with Fri/Sat as weekend? Or just highlight Today.
-
+                  
                   return (
                     <TableRow key={day} className={cn(
                         "transition-colors hover:bg-teal-50/30 dark:hover:bg-teal-900/20",
@@ -287,7 +358,7 @@ export default function MonthlyMealGrid({
                 <TableRow className="bg-teal-100 dark:bg-teal-900/50 font-bold sticky bottom-0 z-20 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] border-t-2 border-teal-200 dark:border-teal-800">
                     <TableCell className="sticky left-0 bg-teal-100 dark:bg-teal-900 border-r border-teal-200 dark:border-teal-800 p-3 text-center shadow-[2px_0_5px_rgba(0,0,0,0.05)] text-teal-900 dark:text-teal-100">Total</TableCell>
                     {users.map(user => {
-                        const userMeals = monthlyMealCosts.filter(m => m.user_id === user.id)
+                        const userMeals = optimisticMeals.filter(m => m.user_id === user.id)
                         const userLunch = userMeals.filter(m => m.meal_type === 'Lunch').reduce((sum, m) => sum + Number(m.meal_weight), 0)
                         const userDinner = userMeals.filter(m => m.meal_type === 'Dinner').reduce((sum, m) => sum + Number(m.meal_weight), 0)
                         return (
