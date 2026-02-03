@@ -222,7 +222,7 @@ export default async function DashboardPage() {
                       className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors active:scale-[0.98]"
                     >
                       <div className="space-y-1 min-w-0 flex-1">
-                        <p className="font-medium text-sm sm:text-base leading-none truncate">
+                        <p className="font-medium text-sm sm:text-base leading-none">
                           {item.item_name}
                         </p>
                         <p className="text-xs text-muted-foreground">

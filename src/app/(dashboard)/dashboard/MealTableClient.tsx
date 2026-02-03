@@ -186,17 +186,17 @@ export default function MealTableClient({
   return (
     <Card className="overflow-hidden bg-background border-none shadow-none lg:border lg:shadow-sm w-full max-w-full">
       {/* Header Section - Sticky on Mobile */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b p-3 flex items-center gap-3 sm:gap-4 lg:static lg:border-b-0 lg:p-6 lg:bg-transparent">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b p-3 flex items-center justify-between gap-3 sm:gap-4 lg:static lg:border-b-0 lg:p-6 lg:bg-transparent">
         <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold flex items-center gap-2 shrink-0">
             <Utensils className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
             <span className="truncate">Daily Meals</span>
         </CardTitle>
-        <div className="h-6 w-px bg-border hidden sm:block"></div>
+       
         <Input 
           type="date" 
           value={date} 
           onChange={(e) => setDate(e.target.value)}
-          className="h-8 w-[150px] px-2 text-xs bg-muted/20 border-muted-foreground/20 shadow-sm focus:bg-background transition-colors rounded-lg font-medium"
+          className="h-8 !w-[155px] !px-3 text-xs bg-muted/20 border-muted-foreground/20 shadow-sm focus:bg-background transition-colors rounded-lg font-medium"
         />
       </div>
       
