@@ -9,20 +9,30 @@ import { Button } from "@/components/ui/button"
 // Extended caching - 5 minutes for instant tab switching
 export const revalidate = 300
 
-export default async function DashboardPage() {
+type Props = {
+  searchParams: Promise<{ date?: string }>
+}
+
+export default async function DashboardPage({ searchParams }: Props) {
   const supabase = await createClient()
+  const resolvedSearchParams = await searchParams
   
   const { data: { user: authUser } } = await supabase.auth.getUser()
   
-  // Today's date for meal table (Local Timezone Safe)
+  // Determine selected date (from URL or default to today)
   const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  const today = `${year}-${month}-${day}`
+  const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const selectedDate = resolvedSearchParams.date || todayDate
+
+  // Ensure validity (fallback to today if invalid)
+  const dateObj = new Date(selectedDate)
+  const isValidDate = !isNaN(dateObj.getTime())
+  const activeDate = isValidDate ? selectedDate : todayDate
   
-  // Fetch current month data (YYYY-MM-01)
-  const currentMonth = `${year}-${month}-01`
+  // Extract month from the ACTIVE DATE to ensure meal calculation matches the view
+  const activeYear = dateObj.getFullYear()
+  const activeMonthStr = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const currentMonth = `${activeYear}-${activeMonthStr}-01`
   
   // PARALLEL QUERIES - Execute all queries simultaneously for 70-80% faster loading!
   const [
@@ -57,12 +67,12 @@ export default async function DashboardPage() {
     supabase
       .from('meal_costs')
       .select('*')
-      .eq('meal_date', today),
+      .eq('meal_date', activeDate),
     
     supabase
       .from('daily_meals')
       .select('*, meal_type:meal_types(*)')
-      .eq('meal_date', today),
+      .eq('meal_date', activeDate),
     
     supabase
       .from('meal_costs')
@@ -106,7 +116,7 @@ export default async function DashboardPage() {
   const isAdmin = currentUser?.role === 'admin'
   const totalShopping = monthlyBajar?.reduce((sum, s) => sum + Number(s.cost), 0) || 0
 
-  const monthLabel = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const monthLabel = new Date(activeDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   
   return (
     <div className="space-y-6 pb-24 lg:pb-8 animate-fadeIn w-full max-w-full">
@@ -131,7 +141,7 @@ export default async function DashboardPage() {
               mealTypes={mealTypes || []}
               todayMeals={todayMeals || []}
               dailyMeals={dailyMeals || []}
-              selectedDate={today}
+              selectedDate={activeDate}
               isAdmin={isAdmin}
             />
           )}

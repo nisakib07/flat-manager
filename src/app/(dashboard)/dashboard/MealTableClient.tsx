@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition, useRef, useCallback } from 'react'
+import { useState, useTransition, useRef, useCallback, useEffect } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { 
   setDailyMeal, 
   addMealWithWeight,
@@ -8,7 +9,9 @@ import {
   deleteMealEntry,
   toggleAllMeals,
   toggleUserMealAttendance,
-  createMealType
+  batchUpdateDailyMeals,
+  createMealType,
+  type MealUpdate
 } from '../actions'
 import type { User, MealCost, MealTypeItem, DailyMeal } from '@/types/database'
 import {
@@ -46,7 +49,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Moon, Sun, Utensils, Check, X, Users, Calendar as CalendarIcon } from 'lucide-react'
+import { Moon, Sun, Utensils, Check, X, Users, Calendar as CalendarIcon, Save, RotateCcw } from 'lucide-react'
 
 interface MealTableClientProps {
   users: User[]
@@ -76,7 +79,16 @@ export default function MealTableClient({
   selectedDate,
   isAdmin 
 }: MealTableClientProps) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [date, setDate] = useState(selectedDate)
+  
+  // Update local state if prop changes (e.g. after URL navigation)
+  useEffect(() => {
+    setDate(selectedDate)
+  }, [selectedDate])
+
   const [isPending, startTransition] = useTransition()
   const [loadingCell, setLoadingCell] = useState<string | null>(null) // "userId-mealTime"
   const [editingMeal, setEditingMeal] = useState<EditingMeal | null>(null)
@@ -85,6 +97,42 @@ export default function MealTableClient({
   const [customMealName, setCustomMealName] = useState('')
   const [customMealWeight, setCustomMealWeight] = useState('')
   
+  // Pending changes: Key = "userId-mealTime", Value = weight
+  const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({})
+  
+  // Clear pending changes when date changes
+  useEffect(() => {
+    setPendingChanges({})
+  }, [date])
+
+  // Get original server weight for a user/meal
+  const getServerWeight = useCallback((userId: string, mealTime: 'Lunch' | 'Dinner'): number => {
+    const serverMeal = todayMeals.find(m => m.user_id === userId && m.meal_type === mealTime)
+    return serverMeal ? Number(serverMeal.meal_weight) : 0
+  }, [todayMeals])
+
+  // Smart update: add to pending if differs from server, remove if matches server
+  const updatePendingChange = useCallback((userId: string, mealTime: 'Lunch' | 'Dinner', newWeight: number) => {
+    const key = `${userId}-${mealTime}`
+    const serverWeight = getServerWeight(userId, mealTime)
+    
+    setPendingChanges(prev => {
+      const updated = { ...prev }
+      if (newWeight === serverWeight) {
+        // Remove from pending if it matches server value
+        delete updated[key]
+      } else {
+        // Add to pending if it differs from server
+        updated[key] = newWeight
+      }
+      return updated
+    })
+  }, [getServerWeight])
+
+  // Check if there are actual unsaved changes
+  const hasActualChanges = Object.keys(pendingChanges).length > 0
+  const actualChangesCount = Object.keys(pendingChanges).length
+
   // Long press tracking
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
   const isLongPress = useRef(false)
@@ -96,16 +144,50 @@ export default function MealTableClient({
   const lunchType = mealTypes.find(mt => mt.id === lunchMeal?.meal_type_id)
   const dinnerType = mealTypes.find(mt => mt.id === dinnerMeal?.meal_type_id)
 
-  // Get user's meal for a specific time
-  const getUserMeal = (userId: string, mealTime: 'Lunch' | 'Dinner'): MealCost | undefined => {
-    return todayMeals.find(m => m.user_id === userId && m.meal_type === mealTime)
+  // Get user's meal for a specific time (merging server data with local changes)
+  const getUserMeal = (userId: string, mealTime: 'Lunch' | 'Dinner'): { meal_weight: number, isPending?: boolean, id?: string } | undefined => {
+    const key = `${userId}-${mealTime}`
+    const serverMeal = todayMeals.find(m => m.user_id === userId && m.meal_type === mealTime)
+    
+    // Check pending changes first
+    if (key in pendingChanges) {
+      const weight = pendingChanges[key]
+      return { 
+        meal_weight: weight, 
+        isPending: true,
+        id: serverMeal?.id // helper to keep ID if it existed on server
+      }
+    }
+    
+    // Fallback to server data
+    if (serverMeal) {
+      return { 
+        meal_weight: Number(serverMeal.meal_weight),
+        id: serverMeal.id 
+      }
+    }
+    
+    return undefined
   }
 
   // Count totals
-  const lunchCount = users.filter(u => getUserMeal(u.id, 'Lunch')).length
-  const dinnerCount = users.filter(u => getUserMeal(u.id, 'Dinner')).length
-  const lunchTotal = todayMeals.filter(m => m.meal_type === 'Lunch').reduce((sum, m) => sum + Number(m.meal_weight), 0)
-  const dinnerTotal = todayMeals.filter(m => m.meal_type === 'Dinner').reduce((sum, m) => sum + Number(m.meal_weight), 0)
+  const lunchCount = users.filter(u => {
+    const meal = getUserMeal(u.id, 'Lunch')
+    return meal && Number(meal.meal_weight) > 0
+  }).length
+  const dinnerCount = users.filter(u => {
+    const meal = getUserMeal(u.id, 'Dinner')
+    return meal && Number(meal.meal_weight) > 0
+  }).length
+  
+  const lunchTotal = users.reduce((sum, u) => {
+    const meal = getUserMeal(u.id, 'Lunch')
+    return sum + (meal ? Number(meal.meal_weight) : 0)
+  }, 0)
+  const dinnerTotal = users.reduce((sum, u) => {
+    const meal = getUserMeal(u.id, 'Dinner')
+    return sum + (meal ? Number(meal.meal_weight) : 0)
+  }, 0)
 
   const allLunchSelected = lunchCount === users.length
   const allDinnerSelected = dinnerCount === users.length
@@ -138,21 +220,16 @@ export default function MealTableClient({
     })
   }
 
-  // SINGLE TAP: Toggle meal on/off at default weight
-  const handleTapToggle = useCallback(async (userId: string, mealTime: 'Lunch' | 'Dinner') => {
+  // SINGLE TAP: Toggle meal on/off locally
+  const handleTapToggle = useCallback((userId: string, mealTime: 'Lunch' | 'Dinner') => {
     if (!isAdmin) return
     
-    const cellKey = `${userId}-${mealTime}`
-    const existingMeal = getUserMeal(userId, mealTime)
+    const existingWeight = getUserMeal(userId, mealTime)?.meal_weight || 0
     const defaultWeight = mealTime === 'Lunch' ? Number(lunchType?.weight || 1) : Number(dinnerType?.weight || 1)
+    const newWeight = existingWeight > 0 ? 0 : defaultWeight
     
-    setLoadingCell(cellKey)
-    
-    startTransition(async () => {
-      await toggleUserMealAttendance(userId, date, mealTime, defaultWeight)
-      setLoadingCell(null)
-    })
-  }, [isAdmin, date, lunchType, dinnerType, todayMeals])
+    updatePendingChange(userId, mealTime, newWeight)
+  }, [isAdmin, lunchType, dinnerType, updatePendingChange, pendingChanges, todayMeals])
 
   // LONG PRESS: Open weight editor modal
   const openWeightEditor = useCallback((userId: string, mealTime: 'Lunch' | 'Dinner') => {
@@ -209,34 +286,57 @@ export default function MealTableClient({
     const parsedWeight = parseFloat(customWeight)
     const weight = isNaN(parsedWeight) ? 1 : parsedWeight
 
-    startTransition(async () => {
-      if (editingMeal.isNew) {
-        await addMealWithWeight(editingMeal.userId, date, editingMeal.mealTime, weight)
-      } else if (editingMeal.mealId) {
-        await updateMealWeight(editingMeal.mealId, weight)
-      }
-      setEditingMeal(null)
-    })
+    // Update local state - will auto-remove if matches server
+    updatePendingChange(editingMeal.userId, editingMeal.mealTime, weight)
+    setEditingMeal(null)
   }
 
   // Delete meal from modal
   async function handleDeleteMeal() {
     if (!editingMeal?.mealId) return
 
-    startTransition(async () => {
-      await deleteMealEntry(editingMeal.mealId!)
-      setEditingMeal(null)
-    })
+    // Update local state (weight 0 = delete) - will auto-remove if matches server
+    updatePendingChange(editingMeal.userId, editingMeal.mealTime, 0)
+    setEditingMeal(null)
   }
 
   // Toggle all users
   async function handleToggleAll(mealTime: 'Lunch' | 'Dinner') {
     const isAllSelected = mealTime === 'Lunch' ? allLunchSelected : allDinnerSelected
-    const weight = mealTime === 'Lunch' ? Number(lunchType?.weight || 1) : Number(dinnerType?.weight || 1)
+    const defaultWeight = mealTime === 'Lunch' ? Number(lunchType?.weight || 1) : Number(dinnerType?.weight || 1)
     
-    startTransition(async () => {
-      await toggleAllMeals(date, mealTime, users.map(u => u.id), !isAllSelected, weight)
+    // Batch update local state - smart update for each user
+    users.forEach(u => {
+      const newWeight = isAllSelected ? 0 : defaultWeight
+      updatePendingChange(u.id, mealTime, newWeight)
     })
+  }
+
+  // SAVE ALL CHANGES
+  const handleSaveChanges = async () => {
+    startTransition(async () => {
+      const updates: MealUpdate[] = Object.entries(pendingChanges).map(([key, weight]) => {
+        const [userId, mealTime] = key.split('-') as [string, 'Lunch' | 'Dinner']
+        return {
+          userId,
+          date,
+          mealTime,
+          weight
+        }
+      })
+
+      const result = await batchUpdateDailyMeals(updates)
+      if (result.success) {
+        setPendingChanges({})
+      }
+    })
+  }
+  
+  // Reset changes
+  const handleReset = () => {
+    if (confirm('Discard all unsaved changes?')) {
+      setPendingChanges({})
+    }
   }
 
   // Render meal cell
@@ -267,7 +367,9 @@ export default function MealTableClient({
             ? isLunch 
               ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm" 
               : "bg-amber-500 hover:bg-amber-600 text-white shadow-sm"
-            : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700"
+            : "bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700",
+          // Highlight pending changes
+          meal?.isPending && "ring-2 ring-primary ring-offset-2"
         )}
       >
         {isLoading ? (
@@ -313,7 +415,13 @@ export default function MealTableClient({
               selected={date ? parse(date, 'yyyy-MM-dd', new Date()) : undefined}
               onSelect={(newDate) => {
                 if (newDate) {
-                  setDate(format(newDate, 'yyyy-MM-dd'))
+                  const formattedDate = format(newDate, 'yyyy-MM-dd')
+                  setDate(formattedDate)
+                  
+                  // Update URL to trigger server refresh
+                  const params = new URLSearchParams(searchParams.toString())
+                  params.set('date', formattedDate)
+                  router.push(`${pathname}?${params.toString()}`)
                 }
               }}
               initialFocus
@@ -375,10 +483,10 @@ export default function MealTableClient({
       
       {/* Unified Table */}
       <div className="overflow-x-auto overflow-y-auto max-h-[60vh] sm:max-h-none">
-        <Table className="min-w-[320px]">
-          <TableHeader className="bg-slate-50 dark:bg-slate-900/50 sticky top-0 z-10">
+        <Table className="min-w-[320px] meal-data-table">
+          <TableHeader className="bg-muted/40 dark:bg-muted/10 sticky top-0 z-10">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[120px] sm:w-[150px] font-bold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">
+              <TableHead className="w-[120px] sm:w-[150px] font-bold text-muted-foreground text-xs uppercase tracking-wider">
                 Name
               </TableHead>
               <TableHead className="w-[100px] sm:w-[120px] text-center">
@@ -435,7 +543,7 @@ export default function MealTableClient({
           </TableHeader>
           <TableBody>
             {users.map((user) => (
-              <TableRow key={user.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+              <TableRow key={user.id} className="hover:bg-muted/30 border-b border-border">
                 <TableCell className="font-medium text-sm py-2">{user.name}</TableCell>
                 <TableCell className="py-2 px-2">
                   <MealCell userId={user.id} mealTime="Lunch" />
@@ -446,16 +554,16 @@ export default function MealTableClient({
               </TableRow>
             ))}
           </TableBody>
-          <TableFooter className="bg-slate-100 dark:bg-slate-900/70">
+          <TableFooter className="bg-muted/60 dark:bg-muted/20 border-t border-border">
             <TableRow>
-              <TableCell className="font-bold text-slate-700 dark:text-slate-200 py-3">Total</TableCell>
+              <TableCell className="font-bold text-foreground py-3">Total</TableCell>
               <TableCell className="text-center py-3">
-                <div className="font-black text-lg text-emerald-600 dark:text-emerald-400">
+                <div className="font-black text-lg text-foreground">
                   {lunchTotal}
                 </div>
               </TableCell>
               <TableCell className="text-center py-3">
-                <div className="font-black text-lg text-amber-600 dark:text-amber-400">
+                <div className="font-black text-lg text-foreground">
                   {dinnerTotal}
                 </div>
               </TableCell>
@@ -589,6 +697,43 @@ export default function MealTableClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Save Changes Bar - Only show when there are actual changes */}
+      {isAdmin && hasActualChanges && (
+        <div className="sticky bottom-0 left-0 right-0 z-20 px-3 sm:px-4 py-2.5 sm:py-3 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-2">
+          {/* Mobile: Stack vertically */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+            <div className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span>{actualChangesCount} unsaved change{actualChangesCount !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={handleReset}
+                disabled={isPending}
+                className="text-muted-foreground hover:text-foreground flex-1 sm:flex-none h-9 sm:h-8"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1.5 sm:mr-1" />
+                Discard
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={handleSaveChanges}
+                disabled={isPending}
+                className="font-semibold flex-1 sm:flex-none h-9 sm:h-8"
+              >
+                {isPending ? (
+                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1.5" />
+                ) : (
+                  <Save className="w-4 h-4 mr-1.5" />
+                )}
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   )
 }

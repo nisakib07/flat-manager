@@ -110,9 +110,9 @@ function MealCalculation({
   )
 
   return (
-    <Card className="shadow-md border-teal-100 dark:border-teal-900/50">
-      <CardHeader className="pb-3 sm:pb-4 bg-teal-50/30 dark:bg-teal-950/20 border-b border-teal-100 dark:border-teal-900/50">
-        <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-teal-900 dark:text-teal-100">
+    <Card className="shadow-md border-border">
+      <CardHeader className="pb-3 sm:pb-4 bg-muted/30 border-b border-border">
+        <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-foreground">
           <span className="text-lg sm:text-xl">📊</span> 
           <span className="hidden sm:inline">Meal Calculation - {monthLabel}</span>
           <span className="sm:hidden">Calculation</span>
@@ -122,44 +122,49 @@ function MealCalculation({
       <CardContent className="space-y-4 sm:space-y-6 pt-4 sm:pt-6 px-3 sm:px-6">
         {/* Summary Stats */}
         <div className="grid gap-2.5 sm:gap-4 grid-cols-3">
-          <div className="rounded-xl border border-teal-100 bg-white dark:bg-teal-950/30 dark:border-teal-900 p-3 sm:p-5 shadow-sm">
-            <p className="text-[10px] sm:text-xs font-bold text-teal-600 dark:text-teal-400 mb-1 sm:mb-2 uppercase tracking-wider">Shopping</p>
-            <p className="text-lg sm:text-2xl font-black text-teal-900 dark:text-teal-100">৳{totalBajar}</p>
+          <div className="rounded-xl bg-card border shadow-sm border-l-4 border-l-teal-500 p-3 sm:p-5">
+            <p className="text-[10px] sm:text-xs font-bold text-muted-foreground mb-1 sm:mb-2 uppercase tracking-wider">Shopping</p>
+            <p className="text-lg sm:text-2xl font-black text-foreground">৳{totalBajar}</p>
             <p className="text-[9px] sm:hidden text-muted-foreground">৳{totalBajar.toLocaleString()}</p>
           </div>
-          <div className="rounded-xl border border-orange-100 bg-white dark:bg-orange-950/30 dark:border-orange-900 p-3 sm:p-5 shadow-sm">
-            <p className="text-[10px] sm:text-xs font-bold text-orange-600 dark:text-orange-400 mb-1 sm:mb-2 uppercase tracking-wider">Weight</p>
-            <p className="text-lg sm:text-2xl font-black text-orange-900 dark:text-orange-100">{totalMealWeight}</p>
+          <div className="rounded-xl bg-card border shadow-sm border-l-4 border-l-orange-500 p-3 sm:p-5">
+            <p className="text-[10px] sm:text-xs font-bold text-muted-foreground mb-1 sm:mb-2 uppercase tracking-wider">Weight</p>
+            <p className="text-lg sm:text-2xl font-black text-foreground">{totalMealWeight}</p>
           </div>
-          <div className="rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-900 p-3 sm:p-5 shadow-sm">
-            <p className="text-[10px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 mb-1 sm:mb-2 uppercase tracking-wider">Rate</p>
-            <p className="text-lg sm:text-2xl font-black text-blue-700 dark:text-blue-300">৳{mealRate.toFixed(1)}</p>
+          <div className="rounded-xl bg-card border shadow-sm border-l-4 border-l-blue-500 p-3 sm:p-5">
+            <p className="text-[10px] sm:text-xs font-bold text-muted-foreground mb-1 sm:mb-2 uppercase tracking-wider">Rate</p>
+            <p className="text-lg sm:text-2xl font-black text-foreground">৳{mealRate.toFixed(1)}</p>
           </div>
         </div>
 
         {/* Per-User Breakdown */}
-        <div className="rounded-xl border border-teal-100 dark:border-teal-900/50 overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-border overflow-hidden shadow-sm">
           {/* Desktop: Table */}
           <div className="hidden sm:block overflow-x-auto">
-            <Table className="table-fixed">
-              <TableHeader>
-                <TableRow className="bg-teal-50/50 dark:bg-teal-950/20 border-b border-teal-100 dark:border-teal-900">
-                  <TableHead className="font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider w-[25%]">Name</TableHead>
-                  <TableHead className="!text-center font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider w-[15%]">Weight</TableHead>
-                  <TableHead className="!text-right font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider w-[20%]">Cost</TableHead>
-                  <TableHead className="!text-right font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider w-[20%]">Deposit</TableHead>
-                  <TableHead className="!text-right font-bold text-teal-700 dark:text-teal-400 uppercase text-xs tracking-wider w-[20%]">Balance</TableHead>
+              <Table className="table-fixed meal-data-table">
+                <TableHeader>
+                  <TableRow className="bg-muted/50 border-b border-border">
+                  <TableHead className="font-bold text-muted-foreground uppercase text-xs tracking-wider w-[25%]">Name</TableHead>
+                  <TableHead className="!text-center font-bold text-muted-foreground uppercase text-xs tracking-wider w-[15%]">Weight</TableHead>
+                  <TableHead className="!text-right font-bold text-muted-foreground uppercase text-xs tracking-wider w-[20%]">Cost</TableHead>
+                  <TableHead className="!text-right font-bold text-muted-foreground uppercase text-xs tracking-wider w-[20%]">Deposit</TableHead>
+                  <TableHead className="!text-right font-bold text-muted-foreground uppercase text-xs tracking-wider w-[20%]">Balance</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {userSummaries.map((summary) => (
-                  <TableRow key={summary.userId} className="hover:bg-teal-50/20 dark:hover:bg-teal-900/10 border-b border-teal-50 dark:border-teal-900/30">
+                  <TableRow key={summary.userId} className={cn(
+                    "border-b border-border transition-colors",
+                    summary.balance < 0 
+                      ? "bg-red-50/50 hover:bg-red-100/50 dark:bg-red-900/10 dark:hover:bg-red-900/20" 
+                      : "hover:bg-muted/50"
+                  )}>
                     <TableCell className="font-medium">{summary.name}</TableCell>
                     <TableCell className="text-center font-medium">{summary.totalWeight}</TableCell>
-                    <TableCell className="text-right font-medium text-teal-600 dark:text-teal-400">
+                    <TableCell className="text-right font-medium text-muted-foreground">
                       ৳{summary.cost.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-right font-medium text-teal-600 dark:text-teal-400">
+                    <TableCell className="text-right font-medium text-muted-foreground">
                       ৳{summary.deposit.toFixed(2)}
                     </TableCell>
                     <TableCell className={cn(
@@ -172,18 +177,18 @@ function MealCalculation({
                 ))}
               </TableBody>
               <TableFooter>
-                <TableRow className="bg-teal-100 dark:bg-teal-900/50 font-bold border-t border-teal-200 dark:border-teal-800">
-                  <TableCell className="text-teal-900 dark:text-teal-100">Total</TableCell>
-                  <TableCell className="text-center text-teal-900 dark:text-teal-100">
+                <TableRow className="bg-muted/80 font-bold border-t border-border">
+                  <TableCell className="text-foreground">Total</TableCell>
+                  <TableCell className="text-center text-foreground">
                     {totalMealWeight}
                   </TableCell>
-                  <TableCell className="text-right text-teal-900 dark:text-teal-100">
+                  <TableCell className="text-right font-bold text-foreground">
                     ৳{totalBajar.toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-right text-teal-900 dark:text-teal-100">
+                  <TableCell className="text-right font-bold text-foreground">
                     ৳{totalDepositSum.toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-right text-teal-900 dark:text-teal-100">
+                  <TableCell className="text-right font-bold text-foreground">
                     ৳{totalBalanceSum.toLocaleString()}
                   </TableCell>
                 </TableRow>
@@ -194,7 +199,12 @@ function MealCalculation({
           {/* Mobile: Cards */}
           <div className="sm:hidden space-y-2 p-2">
             {userSummaries.map((summary) => (
-              <div key={summary.userId} className="bg-card p-3 rounded-lg border active:scale-[0.98] transition-transform">
+              <div key={summary.userId} className={cn(
+                "p-3 rounded-lg border active:scale-[0.98] transition-transform",
+                summary.balance < 0
+                  ? "bg-red-50/30 border-red-100 dark:bg-red-900/10 dark:border-red-900/50"
+                  : "bg-card border-border"
+              )}>
                 <div className="font-semibold text-base mb-2">{summary.name}</div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
                   <div className="flex justify-between">
@@ -203,11 +213,11 @@ function MealCalculation({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Cost:</span>
-                    <span className="font-medium text-teal-600">৳{summary.cost.toFixed(0)}</span>
+                    <span className="font-medium text-muted-foreground">৳{summary.cost.toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Deposit:</span>
-                    <span className="font-medium text-teal-600">৳{summary.deposit.toFixed(0)}</span>
+                    <span className="font-medium text-muted-foreground">৳{summary.deposit.toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Balance:</span>

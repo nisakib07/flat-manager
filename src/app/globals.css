@@ -5,40 +5,43 @@
    ============================================ */
 
 :root {
-  /* Primary Palette - Vibrant Teal #0FB9B1 */
-  --primary: 177 85% 39%;
+  /* Primary Palette - Premium Teal */
+  --primary: 176 80% 36%;
   --primary-foreground: 0 0% 100%;
   
-  /* Background & Surfaces - #F3F6F5 / #FFFFFF */
-  --background: 150 14% 96%;
-  --foreground: 175 40% 10%;
+  /* Background & Surfaces - Clean Slate */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  
   --card: 0 0% 100%;
-  --card-foreground: 175 40% 10%;
+  --card-foreground: 222 47% 11%;
+  
   --popover: 0 0% 100%;
-  --popover-foreground: 175 40% 10%;
+  --popover-foreground: 222 47% 11%;
   
   /* Secondary & Muted */
-  --secondary: 150 10% 93%;
-  --secondary-foreground: 175 35% 15%;
-  --muted: 150 8% 91%;
-  --muted-foreground: 175 15% 40%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222 47% 11%;
   
-  /* Accent - CTA Terra Cotta #E07A3F */
-  --accent: 21 72% 56%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215 16% 47%;
+  
+  /* Accent - Vibrant Terra Cotta */
+  --accent: 21 85% 56%;
   --accent-foreground: 0 0% 100%;
   
-  /* Alt CTA - Same as accent for consistency */
-  --alt-cta: 21 72% 56%;
+  /* Alt CTA */
+  --alt-cta: 21 85% 56%;
   --alt-cta-foreground: 0 0% 100%;
   
   /* Destructive */
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
   
   /* Borders & Inputs */
-  --border: 150 12% 88%;
-  --input: 150 10% 90%;
-  --ring: 177 85% 39%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 176 80% 36%;
   
   /* Charts - Harmonious Palette */
   --chart-1: 177 85% 39%;
@@ -64,12 +67,13 @@
                    radial-gradient(at 0% 50%, hsl(145 63% 60% / 0.1) 0px, transparent 50%);
   
   /* Shadows with color tinting */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
-  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
-  --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.15);
-  --shadow-glow: 0 0 40px -10px hsl(177 85% 50% / 0.35);
+  /* Shadows - Diffused & Modern */
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(15 23 42 / 0.1), 0 2px 4px -2px rgb(15 23 42 / 0.06);
+  --shadow-md: 0 10px 15px -3px rgb(15 23 42 / 0.1), 0 4px 6px -4px rgb(15 23 42 / 0.05);
+  --shadow-lg: 0 20px 25px -5px rgb(15 23 42 / 0.1), 0 8px 10px -6px rgb(15 23 42 / 0.05);
+  --shadow-xl: 0 25px 50px -12px rgb(15 23 42 / 0.25);
+  --shadow-glow: 0 0 20px -5px hsl(176 80% 50% / 0.4);
   
   /* Legacy Token Mapping */
   --card-bg: hsl(var(--card));
@@ -554,12 +558,12 @@ input::placeholder {
   border: 1px solid hsl(var(--border));
 }
 
-table {
+.meal-data-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-th {
+.meal-data-table th {
   text-align: left;
   padding: 0.875rem 1rem;
   font-size: 0.8rem;
@@ -571,17 +575,17 @@ th {
   text-transform: uppercase;
 }
 
-td {
+.meal-data-table td {
   padding: 1rem;
   border-bottom: 1px solid hsl(var(--border) / 0.5);
   color: hsl(var(--foreground));
 }
 
-tr:last-child td {
+.meal-data-table tr:last-child td {
   border-bottom: none;
 }
 
-tr:hover td {
+.meal-data-table tr:hover td {
   background: hsl(var(--primary) / 0.04);
 }
 

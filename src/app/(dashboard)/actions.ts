@@ -772,3 +772,62 @@ export async function addFundTransfer(formData: FormData) {
   revalidatePath('/shopping')
   return { success: true }
 }
+
+export type MealUpdate = {
+  userId: string
+  date: string
+  mealTime: 'Lunch' | 'Dinner'
+  weight: number
+}
+
+export async function batchUpdateDailyMeals(updates: MealUpdate[]) {
+  const supabase = await createClient()
+  
+  const results = await Promise.all(updates.map(async (update) => {
+    // If weight is 0, delete the entry
+    if (update.weight <= 0) {
+      return supabase
+        .from('meal_costs')
+        .delete()
+        .eq('user_id', update.userId)
+        .eq('meal_date', update.date)
+        .eq('meal_type', update.mealTime)
+    } else {
+      // Otherwise upsert (insert or update)
+      // First check if it exists to know whether to insert or update (handling the ID)
+      const { data: existing } = await supabase
+        .from('meal_costs')
+        .select('id')
+        .eq('user_id', update.userId)
+        .eq('meal_date', update.date)
+        .eq('meal_type', update.mealTime)
+        .single()
+
+      if (existing) {
+        return supabase
+          .from('meal_costs')
+          .update({ meal_weight: update.weight })
+          .eq('id', existing.id)
+      } else {
+        return supabase
+          .from('meal_costs')
+          .insert({
+            user_id: update.userId,
+            meal_date: update.date,
+            meal_type: update.mealTime,
+            meal_weight: update.weight,
+            cost: 0
+          })
+      }
+    }
+  }))
+
+  const errors = results.filter(r => r.error).map(r => r.error?.message)
+  
+  if (errors.length > 0) {
+    return { error: errors.join(', ') }
+  }
+
+  revalidatePath('/dashboard')
+  return { success: true }
+}
