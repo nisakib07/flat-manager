@@ -277,7 +277,7 @@ export default function CommonExpensesClient({ expenses, isAdmin, users, selecte
                                 onChange={() => setFormData({...formData, payment_preference: 'deposit'})}
                                 className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
                             />
-                            <span className="text-sm font-medium">Add to Meal Deposit</span>
+                            <span className="text-sm font-medium">Meal Deposit</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-gray-800 p-2 rounded shadow-sm border border-transparent hover:border-amber-200 transition-all flex-1">
                             <input 
@@ -288,7 +288,7 @@ export default function CommonExpensesClient({ expenses, isAdmin, users, selecte
                                 onChange={() => setFormData({...formData, payment_preference: 'payback'})}
                                 className="w-4 h-4 text-amber-600 border-gray-300 focus:ring-amber-500"
                             />
-                            <span className="text-sm font-medium">Request Payback</span>
+                            <span className="text-sm font-medium">Payback</span>
                         </label>
                     </div>
                     <p className="text-[10px] sm:text-xs text-muted-foreground">

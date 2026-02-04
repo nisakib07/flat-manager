@@ -53,6 +53,82 @@ export async function addBajarItem(formData: FormData) {
   const item_name = formData.get('item_name') as string
   const cost = Number(formData.get('cost'))
   const purchase_date = formData.get('purchase_date') as string
+  const payment_preference = (formData.get('payment_preference') as string) || 'deposit'
+
+  // Calculate the month for this transaction
+  const dateObj = new Date(purchase_date)
+  const year = dateObj.getFullYear()
+  const monthNum = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const transactionMonth = `${year}-${monthNum}-01`
+
+  // Calculate shopper's current balance for that month
+  // Balance = Transfers - Shopping - Common Expenses
+  const [transfersRes, shoppingRes, commonRes] = await Promise.all([
+    supabase
+      .from('fund_transfers')
+      .select('amount')
+      .eq('shopper_id', user_id)
+      .gte('transfer_date', transactionMonth),
+    supabase
+      .from('bajar_list')
+      .select('cost')
+      .eq('user_id', user_id)
+      .gte('purchase_date', transactionMonth),
+    supabase
+      .from('common_expenses')
+      .select('total_cost')
+      .eq('shopper_id', user_id)
+      .eq('month', transactionMonth)
+  ])
+
+  const totalTransfers = transfersRes.data?.reduce((sum, t) => sum + Number(t.amount), 0) || 0
+  const totalShopping = shoppingRes.data?.reduce((sum, s) => sum + Number(s.cost), 0) || 0
+  const totalCommonExpenses = commonRes.data?.reduce((sum, c) => sum + Number(c.total_cost), 0) || 0
+  
+  const currentBalance = totalTransfers - totalShopping - totalCommonExpenses
+  
+  const excessAmount = cost - currentBalance
+  
+  let autoDepositAmount = 0
+  let autoDepositSlot: string | null = null
+  
+  if (payment_preference === 'deposit' && excessAmount > 0) {
+    autoDepositAmount = excessAmount
+    
+    // Get/Create deposit record for the transaction month
+    const { data: existingDeposit } = await supabase
+      .from('meal_deposits')
+      .select('*')
+      .eq('user_id', user_id)
+      .eq('month', transactionMonth)
+      .single()
+
+    if (existingDeposit) {
+      const depositSlots = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'] as const
+      for (const slot of depositSlots) {
+        if (!existingDeposit[slot] || existingDeposit[slot] === 0) {
+          autoDepositSlot = slot
+          break
+        }
+      }
+      if (autoDepositSlot) {
+        await supabase
+          .from('meal_deposits')
+          .update({ [autoDepositSlot]: excessAmount })
+          .eq('id', existingDeposit.id)
+      }
+    } else {
+      autoDepositSlot = 'd1'
+      await supabase
+        .from('meal_deposits')
+        .insert({
+          user_id,
+          month: transactionMonth,
+          d1: excessAmount
+        })
+    }
+    revalidatePath('/deposits')
+  }
 
   const { error } = await supabase
     .from('bajar_list')
@@ -60,7 +136,10 @@ export async function addBajarItem(formData: FormData) {
       user_id,
       item_name,
       cost,
-      purchase_date
+      purchase_date,
+      auto_deposit_amount: autoDepositAmount,
+      auto_deposit_slot: autoDepositSlot,
+      payment_preference
     })
 
   if (error) {
@@ -100,6 +179,40 @@ export async function updateBajarItem(id: string, formData: FormData) {
 export async function deleteBajarItem(id: string) {
   const supabase = await createClient()
   
+  // First, get the item to check for auto-deposit info
+  const { data: item } = await supabase
+    .from('bajar_list')
+    .select('user_id, purchase_date, auto_deposit_amount, auto_deposit_slot')
+    .eq('id', id)
+    .single()
+  
+  // If there was an auto-deposit, reverse it
+  if (item?.auto_deposit_amount && item?.auto_deposit_slot && item?.user_id) {
+    // Determine the month from the purchase date
+    const dateObj = new Date(item.purchase_date)
+    const year = dateObj.getFullYear()
+    const monthNum = String(dateObj.getMonth() + 1).padStart(2, '0')
+    const transactionMonth = `${year}-${monthNum}-01`
+
+    // Get the deposit record
+    const { data: deposit } = await supabase
+      .from('meal_deposits')
+      .select('id')
+      .eq('user_id', item.user_id)
+      .eq('month', transactionMonth)
+      .single()
+    
+    if (deposit) {
+      // Clear the auto-deposit slot
+      await supabase
+        .from('meal_deposits')
+        .update({ [item.auto_deposit_slot]: 0 })
+        .eq('id', deposit.id)
+      
+      revalidatePath('/deposits')
+    }
+  }
+
   const { error } = await supabase
     .from('bajar_list')
     .delete()

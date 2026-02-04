@@ -351,12 +351,17 @@ export default function MealTableClient({
       <button
         type="button"
         disabled={!isAdmin || isPending}
-        onMouseDown={() => handlePressStart(userId, mealTime)}
-        onMouseUp={() => handlePressEnd(userId, mealTime)}
-        onMouseLeave={handlePressCancel}
-        onTouchStart={() => handlePressStart(userId, mealTime)}
-        onTouchEnd={() => handlePressEnd(userId, mealTime)}
-        onTouchCancel={handlePressCancel}
+        onPointerDown={(e) => {
+          if (e.button !== 0) return
+          handlePressStart(userId, mealTime)
+        }}
+        onPointerUp={(e) => {
+          if (e.button !== 0) return
+          handlePressEnd(userId, mealTime)
+        }}
+        onPointerLeave={handlePressCancel}
+        onPointerCancel={handlePressCancel}
+        onContextMenu={(e) => e.preventDefault()}
         className={cn(
           "w-full h-10 sm:h-9 rounded-lg font-bold text-sm transition-all duration-150 flex items-center justify-center gap-1",
           "select-none touch-manipulation",

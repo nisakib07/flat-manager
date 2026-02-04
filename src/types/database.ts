@@ -65,6 +65,9 @@ export interface BajarItem {
   purchase_date: string
   created_at: string
   user?: User
+  auto_deposit_amount?: number
+  auto_deposit_slot?: string | null
+  payment_preference?: 'deposit' | 'payback'
 }
 
 export interface MonthlyBalance {

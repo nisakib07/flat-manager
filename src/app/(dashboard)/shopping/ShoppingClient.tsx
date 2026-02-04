@@ -38,6 +38,7 @@ export default function ShoppingClient({
   const [editingItem, setEditingItem] = useState<(Pick<BajarItem, 'id' | 'item_name' | 'cost' | 'purchase_date' | 'user_id'> & { user: { name: string } | null }) | null>(null)
   const [transferType, setTransferType] = useState<'give' | 'return'>('give')
   const [viewShopperId, setViewShopperId] = useState<string>(currentUserId)
+  const [paymentPreference, setPaymentPreference] = useState<'deposit' | 'payback'>('deposit')
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -108,6 +109,7 @@ export default function ShoppingClient({
   // Helper to open add form
   const openAddForm = () => {
     setEditingItem(null)
+    setPaymentPreference('deposit')
     setShowTransferForm(false)
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -344,6 +346,39 @@ export default function ShoppingClient({
                     required 
                     className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
                 />
+              </div>
+
+              <div className="sm:col-span-2 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">If expense exceeds shopper balance</label>
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 mb-2">
+                    <label className={`flex items-center gap-2 cursor-pointer p-2 rounded shadow-sm border transition-all flex-1 ${paymentPreference === 'deposit' ? 'bg-white dark:bg-gray-800 border-teal-200 ring-1 ring-teal-200' : 'bg-white dark:bg-gray-800 border-transparent hover:border-gray-200'}`}>
+                        <input 
+                            type="radio" 
+                            name="payment_preference"
+                            value="deposit"
+                            checked={paymentPreference === 'deposit'}
+                            onChange={() => setPaymentPreference('deposit')}
+                            className="w-4 h-4 text-teal-600 border-gray-300 focus:ring-teal-500"
+                        />
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Meal Deposit</span>
+                    </label>
+                    <label className={`flex items-center gap-2 cursor-pointer p-2 rounded shadow-sm border transition-all flex-1 ${paymentPreference === 'payback' ? 'bg-white dark:bg-gray-800 border-amber-200 ring-1 ring-amber-200' : 'bg-white dark:bg-gray-800 border-transparent hover:border-gray-200'}`}>
+                        <input 
+                            type="radio" 
+                            name="payment_preference"
+                            value="payback"
+                            checked={paymentPreference === 'payback'}
+                            onChange={() => setPaymentPreference('payback')}
+                            className="w-4 h-4 text-amber-600 border-gray-300 focus:ring-amber-500"
+                        />
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Payback</span>
+                    </label>
+                </div>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
+                    {paymentPreference === 'deposit' 
+                        ? 'Excess amount will be added to the shopper\'s meal deposit'
+                        : 'Manager will owe the excess amount to the shopper'}
+                </p>
               </div>
             </div>
             
