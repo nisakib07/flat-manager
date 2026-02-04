@@ -137,7 +137,7 @@ export default function CommonExpensesClient({ expenses, isAdmin, users, selecte
       
       {/* Action Row */}
       {isAdmin && (
-        <Button onClick={openAddModal} size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
+        <Button onClick={openAddModal} size="sm" className="bg-teal-600 hover:bg-teal-700 text-white hidden sm:flex">
           <Plus className="w-4 h-4 mr-1" />
           Add Expense
         </Button>
@@ -325,10 +325,12 @@ export default function CommonExpensesClient({ expenses, isAdmin, users, selecte
       {isAdmin && !showForm && (
         <button
           onClick={openAddModal}
-          className="fixed bottom-24 right-4 w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white shadow-lg z-40 flex items-center justify-center transition-all duration-200 sm:hidden"
+          className="fixed bottom-8 right-4 w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white shadow-lg z-50 flex items-center justify-center transition-all duration-200 sm:hidden"
           aria-label="Add expense"
         >
-          <Plus className="w-7 h-7" />
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+          </svg>
         </button>
       )}
     </div>

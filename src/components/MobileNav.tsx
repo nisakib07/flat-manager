@@ -15,7 +15,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog'
-import { Lock } from 'lucide-react'
+import { Lock, Shield } from 'lucide-react'
+import { ModeToggle } from './mode-toggle'
 
 interface MobileNavProps {
   user: User | null
@@ -136,12 +137,24 @@ function MobileNav({ user }: MobileNavProps) {
                       </span>
                     </div>
                     
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      {user.role === 'super_admin' && (
+                        <Button variant="ghost" size="icon" title="Super Admin Dashboard" asChild>
+                          <Link href="/super-admin" onClick={handleClose}>
+                            <Shield className="w-5 h-5 text-red-600" />
+                          </Link>
+                        </Button>
+                      )}
+                      
                       <ChangePasswordDialog>
                         <Button variant="ghost" size="icon" title="Change Password">
                           <Lock className="w-5 h-5 text-muted-foreground" />
                         </Button>
                       </ChangePasswordDialog>
+
+                      <div className="ml-1">
+                        <ModeToggle />
+                      </div>
                     </div>
                   </div>
 

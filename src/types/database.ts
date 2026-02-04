@@ -114,6 +114,13 @@ export interface FundTransfer {
   created_at: string
 }
 
+export interface MonthStatus {
+  month: string
+  is_closed: boolean
+  closed_at: string | null
+  closed_by: string | null
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -161,6 +168,11 @@ export interface Database {
         Row: FundTransfer
         Insert: Omit<FundTransfer, 'id' | 'created_at'>
         Update: Partial<Omit<FundTransfer, 'id' | 'created_at'>>
+      }
+      month_status: {
+        Row: MonthStatus
+        Insert: MonthStatus
+        Update: Partial<MonthStatus>
       }
     }
   }

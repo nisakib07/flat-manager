@@ -31,7 +31,8 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
     utilityBillsResult, 
     transfersResult, 
     monthlyShoppingResult,
-    commonExpensesResult
+    commonExpensesResult,
+    monthStatusResult
   ] = await Promise.all([
     supabase
       .from('users')
@@ -93,10 +94,21 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
     supabase
       .from('common_expenses')
       .select('total_cost, shopper_id, payment_preference')
-      .eq('month', currentMonth)
+      .eq('month', currentMonth),
+
+    supabase
+      .from('month_status')
+      .select('is_closed')
+      .eq('month', currentMonth.substring(0, 7)) // YYYY-MM
+      .single()
   ])
   
-  const isAdmin = currentUserResult.data?.role === 'admin' || currentUserResult.data?.role === 'super_admin'
+  const monthStatus = monthStatusResult.data
+  const isSuperAdmin = currentUserResult.data?.role === 'super_admin'
+  const isMonthClosed = monthStatus?.is_closed || false
+  const isAdmin = currentUserResult.data?.role === 'admin' || isSuperAdmin
+  const canEdit = isSuperAdmin || (isAdmin && !isMonthClosed)
+
   const users = usersResult.data
   
   // Transform items to handle potential array return from Supabase relation
@@ -161,7 +173,7 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
     <ShoppingClient 
       users={users || []} 
       items={items || []} 
-      isAdmin={isAdmin}
+      isAdmin={canEdit}
       managerBalance={managerBalance}
       shopperBalances={shopperBalances}
       currentUserId={authUser?.id || ''}

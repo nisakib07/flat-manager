@@ -45,7 +45,8 @@ export default async function DashboardPage({ searchParams }: Props) {
     commonExpensesResult,
     mealDepositsResult,
     monthlyBajarResult,
-    recentShoppingResult
+    recentShoppingResult,
+    monthStatusResult
   ] = await Promise.all([
     // Only select needed fields (not *) for faster queries
     supabase
@@ -98,7 +99,13 @@ export default async function DashboardPage({ searchParams }: Props) {
       .from('bajar_list')
       .select('id, item_name, cost, purchase_date, user:users(name)')
       .order('purchase_date', { ascending: false })
-      .limit(5)
+      .limit(5),
+    
+    supabase
+      .from('month_status')
+      .select('is_closed')
+      .eq('month', activeDate.substring(0, 7)) // YYYY-MM
+      .single()
   ])
   
   // Extract data from results
@@ -112,8 +119,13 @@ export default async function DashboardPage({ searchParams }: Props) {
   const mealDeposits = mealDepositsResult.data
   const monthlyBajar = monthlyBajarResult.data
   const recentShopping = recentShoppingResult.data
+  const monthStatus = monthStatusResult.data
   
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
+  const isSuperAdmin = currentUser?.role === 'super_admin'
+  const isMonthClosed = monthStatus?.is_closed || false
+  const isAdmin = currentUser?.role === 'admin' || isSuperAdmin
+  const canEdit = isSuperAdmin || (isAdmin && !isMonthClosed)
+
   const totalShopping = monthlyBajar?.reduce((sum, s) => sum + Number(s.cost), 0) || 0
 
   const monthLabel = new Date(activeDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -142,7 +154,7 @@ export default async function DashboardPage({ searchParams }: Props) {
               todayMeals={todayMeals || []}
               dailyMeals={dailyMeals || []}
               selectedDate={activeDate}
-              isAdmin={isAdmin}
+              isAdmin={canEdit} // Pass the calculated permission
             />
           )}
 

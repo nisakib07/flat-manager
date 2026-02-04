@@ -14,7 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog'
-import { Lock, LogOut } from 'lucide-react'
+import { Lock, LogOut, Shield } from 'lucide-react'
 
 interface HeaderProps {
   user: User | null
@@ -107,6 +107,15 @@ function Header({ user }: HeaderProps) {
               </div>
               
               <div className="grid gap-1">
+                {user.role === 'super_admin' && (
+                  <Button variant="ghost" size="sm" asChild className="w-full justify-start gap-2 font-normal cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50">
+                    <Link href="/super-admin">
+                      <Shield className="w-4 h-4" />
+                      Super Admin
+                    </Link>
+                  </Button>
+                )}
+                
                 <ChangePasswordDialog>
                   <Button variant="ghost" size="sm" className="w-full justify-start gap-2 font-normal cursor-pointer">
                     <Lock className="w-4 h-4" />
