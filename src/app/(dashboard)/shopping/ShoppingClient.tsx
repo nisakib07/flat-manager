@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { addBajarItem, deleteBajarItem, updateBajarItem, addFundTransfer } from '../actions'
 import { useRef } from 'react'
 import MonthSelector from '@/components/MonthSelector'
@@ -52,8 +53,9 @@ export default function ShoppingClient({
     }
 
     if (result?.error) {
-      setError(result.error)
+      toast.error(result.error)
     } else {
+      toast.success(editingItem ? 'Item updated!' : 'Item added!')
       setShowForm(false)
       setEditingItem(null)
     }
@@ -73,8 +75,9 @@ export default function ShoppingClient({
     const result = await addFundTransfer(formData)
 
     if (result?.error) {
-      setError(result.error)
+      toast.error(result.error)
     } else {
+      toast.success(transferType === 'give' ? 'Funds transferred!' : 'Return recorded!')
       setShowTransferForm(false)
     }
     setLoading(false)
@@ -82,7 +85,12 @@ export default function ShoppingClient({
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this item?')) return
-    await deleteBajarItem(id)
+    const result = await deleteBajarItem(id)
+    if (result?.error) {
+      toast.error(result.error)
+    } else {
+      toast.success('Item deleted!')
+    }
     if (editingItem?.id === id) {
         setEditingItem(null)
         setShowForm(false)

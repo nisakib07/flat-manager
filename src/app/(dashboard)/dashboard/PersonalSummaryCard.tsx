@@ -101,14 +101,14 @@ export default function PersonalSummaryCard({
                     <TrendingUp className="w-3.5 h-3.5" />
                     <span className="text-xs font-medium">Meal Rate</span>
                 </div>
-                <p className="text-lg font-semibold">৳{stats.mealRate.toFixed(1)}</p>
+                <p className="text-lg font-semibold">৳{stats.mealRate.toFixed(2)}</p>
             </div>
             <div className="bg-white/10 rounded-lg p-2.5 backdrop-blur-sm">
                 <div className="flex items-center gap-1.5 text-indigo-100 mb-1">
                     <Utensils className="w-3.5 h-3.5" />
                     <span className="text-xs font-medium">Meals</span>
                 </div>
-                <p className="text-lg font-semibold">{stats.myTotalWeight} <span className="text-xs font-normal opacity-70">({stats.myMealCount})</span></p>
+                <p className="text-lg font-semibold">{stats.myTotalWeight}</p>
             </div>
           </div>
         </div>

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useTransition, useRef, useCallback, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { 
   setDailyMeal, 
   addMealWithWeight,
@@ -313,10 +315,14 @@ export default function MealTableClient({
   }
 
   // SAVE ALL CHANGES
+  const hasChanges = Object.keys(pendingChanges).length > 0
+
   const handleSaveChanges = async () => {
     startTransition(async () => {
       const updates: MealUpdate[] = Object.entries(pendingChanges).map(([key, weight]) => {
-        const [userId, mealTime] = key.split('-') as [string, 'Lunch' | 'Dinner']
+        const lastHyphenIndex = key.lastIndexOf('-')
+        const userId = key.substring(0, lastHyphenIndex)
+        const mealTime = key.substring(lastHyphenIndex + 1) as 'Lunch' | 'Dinner'
         return {
           userId,
           date,
@@ -324,13 +330,27 @@ export default function MealTableClient({
           weight
         }
       })
-
+      
       const result = await batchUpdateDailyMeals(updates)
+      
       if (result.success) {
         setPendingChanges({})
+        toast.success('Meals saved successfully!')
+      } else if (result.error) {
+        toast.error('Failed to save: ' + result.error)
       }
     })
   }
+  
+  // Enable Keyboard Shortcuts: Ctrl+S to save
+  useKeyboardShortcuts({
+    onSave: () => {
+      if (hasChanges) {
+        handleSaveChanges()
+      }
+    },
+    enabled: isAdmin
+  })
   
   // Reset changes
   const handleReset = () => {
@@ -454,7 +474,7 @@ export default function MealTableClient({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_empty">Select...</SelectItem>
-                  {mealTypes.map(mt => (
+                  {[...mealTypes].sort((a, b) => Number(a.weight) - Number(b.weight)).map(mt => (
                     <SelectItem key={mt.id} value={mt.id}>{mt.name} ({mt.weight})</SelectItem>
                   ))}
                   <SelectItem value="custom" className="text-primary font-medium">+ Custom...</SelectItem>
@@ -475,7 +495,7 @@ export default function MealTableClient({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_empty">Select...</SelectItem>
-                  {mealTypes.map(mt => (
+                  {[...mealTypes].sort((a, b) => Number(a.weight) - Number(b.weight)).map(mt => (
                     <SelectItem key={mt.id} value={mt.id}>{mt.name} ({mt.weight})</SelectItem>
                   ))}
                   <SelectItem value="custom" className="text-primary font-medium">+ Custom...</SelectItem>

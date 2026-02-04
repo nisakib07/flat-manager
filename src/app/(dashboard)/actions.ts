@@ -906,32 +906,18 @@ export async function batchUpdateDailyMeals(updates: MealUpdate[]) {
         .eq('meal_date', update.date)
         .eq('meal_type', update.mealTime)
     } else {
-      // Otherwise upsert (insert or update)
-      // First check if it exists to know whether to insert or update (handling the ID)
-      const { data: existing } = await supabase
+      // Upsert using the unique constraint
+      return supabase
         .from('meal_costs')
-        .select('id')
-        .eq('user_id', update.userId)
-        .eq('meal_date', update.date)
-        .eq('meal_type', update.mealTime)
-        .single()
-
-      if (existing) {
-        return supabase
-          .from('meal_costs')
-          .update({ meal_weight: update.weight })
-          .eq('id', existing.id)
-      } else {
-        return supabase
-          .from('meal_costs')
-          .insert({
-            user_id: update.userId,
-            meal_date: update.date,
-            meal_type: update.mealTime,
-            meal_weight: update.weight,
-            cost: 0
-          })
-      }
+        .upsert({
+          user_id: update.userId,
+          meal_date: update.date,
+          meal_type: update.mealTime,
+          meal_weight: update.weight,
+          cost: 0
+        }, {
+          onConflict: 'user_id,meal_date,meal_type'
+        })
     }
   }))
 

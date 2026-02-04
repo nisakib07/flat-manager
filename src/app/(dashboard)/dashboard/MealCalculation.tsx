@@ -133,7 +133,7 @@ function MealCalculation({
           </div>
           <div className="rounded-xl bg-card border shadow-sm border-l-4 border-l-blue-500 p-3 sm:p-5">
             <p className="text-[10px] sm:text-xs font-bold text-muted-foreground mb-1 sm:mb-2 uppercase tracking-wider">Rate</p>
-            <p className="text-lg sm:text-2xl font-black text-foreground">৳{mealRate.toFixed(1)}</p>
+            <p className="text-lg sm:text-2xl font-black text-foreground">৳{mealRate.toFixed(2)}</p>
           </div>
         </div>
 

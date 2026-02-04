@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { batchUpdateUtilities, type UtilityUpdate } from '../actions'
 import type { User, UtilityCollection, UtilityExpense } from '@/types/database'
 import {
@@ -125,11 +127,12 @@ export default function UtilityGrid({
       const result = await batchUpdateUtilities(updates)
       
       if (result.error) {
-        alert('⚠️ Failed to save: ' + result.error)
+        toast.error('Failed to save: ' + result.error)
       } else {
         setEdits({})
         setInputValues({})
         setActiveCell(null)
+        toast.success('Utilities saved successfully!')
       }
     })
   }
@@ -162,6 +165,12 @@ export default function UtilityGrid({
   }, {} as Record<string, number>)
 
   const hasChanges = Object.keys(edits).length > 0
+
+  // Keyboard Shortcuts: Ctrl+S to Save
+  useKeyboardShortcuts({
+    onSave: handleSaveAll,
+    enabled: isAdmin && hasChanges
+  })
 
   return (
     <div className="space-y-4 animate-fadeIn pb-24">

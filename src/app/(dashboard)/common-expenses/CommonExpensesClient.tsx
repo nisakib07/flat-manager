@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { toast } from 'sonner'
 import { addCommonExpense, deleteCommonExpense, updateCommonExpense } from '../actions'
 import type { CommonExpense } from '@/types/database'
 import {
@@ -92,19 +93,31 @@ export default function CommonExpensesClient({ expenses, isAdmin, users, selecte
         data.append('shopper_id', formData.shopper_id)
         data.append('payment_preference', formData.payment_preference)
 
+        let result;
         if (editingExpense) {
-            await updateCommonExpense(editingExpense.id, data)
+            result = await updateCommonExpense(editingExpense.id, data)
         } else {
-            await addCommonExpense(data)
+            result = await addCommonExpense(data)
         }
-        setShowForm(false)
+        
+        if (result?.error) {
+            toast.error(result.error)
+        } else {
+            toast.success(editingExpense ? 'Expense updated!' : 'Expense added!')
+            setShowForm(false)
+        }
     })
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this expense?')) return
     startTransition(async () => {
-        await deleteCommonExpense(id)
+        const result = await deleteCommonExpense(id)
+        if (result?.error) {
+            toast.error(result.error)
+        } else {
+            toast.success('Expense deleted!')
+        }
     })
   }
 
