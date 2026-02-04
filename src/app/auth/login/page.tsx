@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { login } from '../actions'
+import { Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -77,10 +78,10 @@ export default function LoginPage() {
 
             <button type="submit" className="btn btn-primary w-full" disabled={loading}>
               {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  Signing in...
-                </>
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Signing in...</span>
+                </div>
               ) : (
                 'Sign In'
               )}
