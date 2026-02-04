@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Download, X } from 'lucide-react'
+import { Download } from 'lucide-react'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -21,6 +21,18 @@ export function PWAInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false)
 
   useEffect(() => {
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((registration) => {
+          console.log('SW registered:', registration.scope)
+        })
+        .catch((error) => {
+          console.log('SW registration failed:', error)
+        })
+    }
+
     // Check if already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true)
@@ -49,7 +61,7 @@ export function PWAInstallPrompt() {
           </Button>
         </div>,
         {
-          duration: 10000,
+          duration: 15000,
           id: 'pwa-install',
         }
       )
@@ -83,3 +95,4 @@ export function PWAInstallPrompt() {
   // This component doesn't render anything visible - it just handles the install prompt
   return null
 }
+
