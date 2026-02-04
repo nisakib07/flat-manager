@@ -97,16 +97,34 @@ export default function UtilityGrid({
 
     const amount = parseFloat(val) || 0
     
-    setEdits(prev => ({
-      ...prev,
-      [key]: {
-        type,
-        month: selectedMonth,
-        utilityType: utility,
-        userId,
-        amount
+    // Get original value
+    let originalValue = 0
+    if (type === 'collection') {
+      originalValue = utilityCollections.find(c => c.utility_type === utility && c.user_id === userId)?.amount || 0
+    } else {
+      originalValue = utilityExpenses.find(e => e.expense_type === utility)?.amount || 0
+    }
+
+    // Update edits state
+    setEdits(prev => {
+      const newEdits = { ...prev }
+      
+      // If amount equals original, remove from edits
+      if (amount === originalValue) {
+        delete newEdits[key]
+      } else {
+        // Otherwise store/update the edit
+        newEdits[key] = {
+          type,
+          month: selectedMonth,
+          utilityType: utility,
+          userId,
+          amount
+        }
       }
-    }))
+      
+      return newEdits
+    })
   }
 
   const handleBlur = () => {
