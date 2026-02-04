@@ -194,7 +194,7 @@ export default function UtilityGrid({
 
       {/* Unified Table View for Mobile & Desktop */}
       <Card className="shadow-md border-teal-100 dark:border-teal-900/50 overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[70vh] sm:max-h-none">
+        <div className="overflow-x-auto overflow-y-auto max-h-[75vh] sm:max-h-none">
           <Table className="relative border-separate border-spacing-0">
             <TableHeader className="sticky top-0 z-20 bg-background shadow-md">
               <TableRow className="bg-teal-50/80 dark:bg-teal-950/40 hover:bg-teal-50/80 dark:hover:bg-teal-900/40 border-b-2 border-teal-100 dark:border-teal-900">
