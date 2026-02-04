@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { SWRProvider } from "@/providers/swr-provider"
 import { AppDataProvider } from "@/providers/app-data-provider"
 import { Toaster } from "sonner"
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt"
 
 const inter = Inter({
   variable: "--font-inter",
@@ -64,6 +65,7 @@ export default function RootLayout({
                 {children}
               </AppDataProvider>
             </SWRProvider>
+            <PWAInstallPrompt />
             <Toaster 
               position="top-center" 
               richColors 
