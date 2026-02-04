@@ -113,7 +113,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const monthlyBajar = monthlyBajarResult.data
   const recentShopping = recentShoppingResult.data
   
-  const isAdmin = currentUser?.role === 'admin'
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
   const totalShopping = monthlyBajar?.reduce((sum, s) => sum + Number(s.cost), 0) || 0
 
   const monthLabel = new Date(activeDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })

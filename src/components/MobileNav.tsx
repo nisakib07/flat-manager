@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { ChangePasswordDialog } from '@/components/ChangePasswordDialog'
+import { Lock } from 'lucide-react'
 
 interface MobileNavProps {
   user: User | null
@@ -115,7 +117,7 @@ function MobileNav({ user }: MobileNavProps) {
                 
                 <div className="overflow-y-auto px-6 py-6 h-full pb-24">
                   {/* Profile Section */}
-                  <div className="flex items-center gap-4 mb-8 p-4 rounded-2xl bg-muted/30 border border-border/50">
+                  <div className="flex items-center gap-4 mb-8 p-4 rounded-2xl bg-muted/30 border border-border/50 relative">
                     <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold shadow-md"
                          style={{ 
                            background: 'var(--gradient-primary)',
@@ -130,8 +132,16 @@ function MobileNav({ user }: MobileNavProps) {
                               background: 'hsl(var(--primary) / 0.1)',
                               color: 'hsl(var(--primary))'
                             }}>
-                        {user.role}
+                        {user.role === 'super_admin' ? 'Super Admin' : user.role}
                       </span>
+                    </div>
+                    
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      <ChangePasswordDialog>
+                        <Button variant="ghost" size="icon" title="Change Password">
+                          <Lock className="w-5 h-5 text-muted-foreground" />
+                        </Button>
+                      </ChangePasswordDialog>
                     </div>
                   </div>
 

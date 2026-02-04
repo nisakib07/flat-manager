@@ -44,7 +44,7 @@ export default async function UtilitiesPage({ searchParams }: UtilitiesPageProps
       .eq('month', selectedMonthStr)
    ])
   
-  const isAdmin = currentUserResult.data?.role === 'admin'
+  const isAdmin = currentUserResult.data?.role === 'admin' || currentUserResult.data?.role === 'super_admin'
   const users = usersResult.data
   const utilityCollections = collectionsResult.data
   const utilityExpenses = expensesResult.data

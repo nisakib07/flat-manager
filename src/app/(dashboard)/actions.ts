@@ -508,7 +508,7 @@ export async function updateDepositSlot(
   return { success: true }
 }
 
-export async function updateUserRole(userId: string, role: 'admin' | 'viewer') {
+export async function updateUserRole(userId: string, role: 'admin' | 'viewer' | 'super_admin') {
   const supabase = await createClient()
   
   const { error } = await supabase

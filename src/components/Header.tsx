@@ -8,6 +8,13 @@ import type { User } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ModeToggle } from './mode-toggle'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { ChangePasswordDialog } from '@/components/ChangePasswordDialog'
+import { Lock, LogOut } from 'lucide-react'
 
 interface HeaderProps {
   user: User | null
@@ -76,27 +83,46 @@ function Header({ user }: HeaderProps) {
         {/* Right Area (Profile) */}
         <div className="flex items-center gap-4">
           <ModeToggle />
-          <div className="flex items-center gap-3 pl-4 border-l border-border/50">
-             <div className="text-right hidden xl:block">
-                <p className="text-sm font-semibold leading-none">{user.name}</p>
-                <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wider">{user.role}</p>
-             </div>
-             <div className="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm shadow-md ring-2 ring-background"
-                  style={{ 
-                    background: 'var(--gradient-primary)',
-                    color: 'white'
-                  }}>
-                {user.name.charAt(0).toUpperCase()}
-             </div>
-          </div>
           
-          <form action={signout}>
-            <Button variant="ghost" size="icon" title="Sign Out" className="rounded-full hover:bg-destructive/10 hover:text-destructive">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </Button>
-          </form>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-3 pl-4 border-l border-border/50 outline-none group hover:opacity-80 transition-opacity">
+                 <div className="text-right hidden xl:block">
+                    <p className="text-sm font-semibold leading-none">{user.name}</p>
+                    <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wider">{user.role === 'super_admin' ? 'Super Admin' : user.role}</p>
+                 </div>
+                 <div className="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm shadow-md ring-2 ring-background transition-transform group-active:scale-95"
+                      style={{ 
+                        background: 'var(--gradient-primary)',
+                        color: 'white'
+                      }}>
+                    {user.name.charAt(0).toUpperCase()}
+                 </div>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2 mr-4" align="end">
+              <div className="px-2 py-1.5 mb-1 border-b border-border/50 xl:hidden">
+                <p className="text-sm font-semibold">{user.name}</p>
+                <p className="text-xs text-muted-foreground capitalize">{user.role === 'super_admin' ? 'Super Admin' : user.role}</p>
+              </div>
+              
+              <div className="grid gap-1">
+                <ChangePasswordDialog>
+                  <Button variant="ghost" size="sm" className="w-full justify-start gap-2 font-normal cursor-pointer">
+                    <Lock className="w-4 h-4" />
+                    Change Password
+                  </Button>
+                </ChangePasswordDialog>
+                
+                <form action={signout}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start gap-2 font-normal text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer">
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </Button>
+                </form>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
       </div>

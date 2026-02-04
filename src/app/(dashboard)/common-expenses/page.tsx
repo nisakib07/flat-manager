@@ -17,7 +17,7 @@ export default async function CommonExpensesPage({ searchParams }: CommonExpense
     .eq('id', authUser?.id)
     .single()
   
-  const isAdmin = currentUser?.role === 'admin'
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
   
   const { data: users } = await supabase
     .from('users')

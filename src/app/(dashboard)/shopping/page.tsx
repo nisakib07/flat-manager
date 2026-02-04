@@ -96,7 +96,7 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
       .eq('month', currentMonth)
   ])
   
-  const isAdmin = currentUserResult.data?.role === 'admin'
+  const isAdmin = currentUserResult.data?.role === 'admin' || currentUserResult.data?.role === 'super_admin'
   const users = usersResult.data
   
   // Transform items to handle potential array return from Supabase relation

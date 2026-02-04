@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'viewer'
+export type UserRole = 'admin' | 'viewer' | 'super_admin'
 export type MealType = 'Lunch' | 'Dinner'
 
 export interface User {

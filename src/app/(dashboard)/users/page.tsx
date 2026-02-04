@@ -12,7 +12,7 @@ export default async function UsersPage() {
     .eq('id', authUser?.id)
     .single()
   
-  const isAdmin = currentUser?.role === 'admin'
+  const isAdmin = currentUser?.role === 'super_admin'
   
   const { data: users } = await supabase
     .from('users')

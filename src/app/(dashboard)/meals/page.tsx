@@ -21,7 +21,7 @@ export default async function MealsPage({ searchParams }: MealsPageProps) {
     .eq('id', authUser?.id)
     .single()
   
-  const isAdmin = currentUser?.role === 'admin'
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
   
   // Fetch all users
   const { data: users } = await supabase

@@ -35,7 +35,7 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
     setLoading(null)
   }
 
-  const currentAdmin = users.find(u => u.role === 'admin')
+  const currentAdmin = users.find(u => u.role === 'admin' || u.role === 'super_admin')
 
   return (
     <div className="space-y-6 animate-fadeIn pb-10">
@@ -70,9 +70,11 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
                     <div 
                         className={cn(
                             "w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold text-white shadow-sm ring-2 ring-white dark:ring-border",
-                            user.role === 'admin' 
-                                ? "bg-gradient-to-br from-indigo-500 to-purple-600" 
-                                : "bg-gradient-to-br from-teal-400 to-emerald-500"
+                            user.role === 'super_admin'
+                                ? "bg-gradient-to-br from-amber-500 to-orange-600 ring-amber-500/50"
+                                : user.role === 'admin' 
+                                    ? "bg-gradient-to-br from-indigo-500 to-purple-600" 
+                                    : "bg-gradient-to-br from-teal-400 to-emerald-500"
                         )}
                     >
                         {user.name.charAt(0).toUpperCase()}
@@ -95,26 +97,31 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
                         variant="outline" 
                         className={cn(
                             "gap-1 pl-2 pr-3 py-1 font-semibold",
-                            user.role === 'admin' 
-                                ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-800 dark:text-indigo-300"
-                                : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
+                            user.role === 'super_admin'
+                                ? "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300"
+                                : user.role === 'admin' 
+                                    ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-800 dark:text-indigo-300"
+                                    : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
                         )}
                     >
-                        {user.role === 'admin' ? <Crown className="w-3.5 h-3.5" /> : <UserIcon className="w-3.5 h-3.5" />}
-                        {user.role === 'admin' ? 'Admin' : 'Member'}
+                        {user.role === 'super_admin' ? <Crown className="w-3.5 h-3.5 fill-current" /> : user.role === 'admin' ? <Crown className="w-3.5 h-3.5" /> : <UserIcon className="w-3.5 h-3.5" />}
+                        {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Member'}
                      </Badge>
 
                      {isAdmin && user.id !== currentUserId && (
                         <div className="flex items-center gap-2">
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => handleRoleChange(user.id, user.role === 'admin' ? 'viewer' : 'admin')}
-                                disabled={loading === user.id}
-                                className="h-8 text-xs font-semibold"
-                            >
-                                {loading === user.id ? 'Updating...' : user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
-                            </Button>
+                            {/* Allow modifying only if target is NOT super_admin (safety) */}
+                            {user.role !== 'super_admin' && (
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => handleRoleChange(user.id, user.role === 'admin' ? 'viewer' : 'admin')}
+                                    disabled={loading === user.id}
+                                    className="h-8 text-xs font-semibold"
+                                >
+                                    {loading === user.id ? 'Updating...' : user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                                </Button>
+                            )}
                             <Button
                                 variant="ghost"
                                 size="icon"
