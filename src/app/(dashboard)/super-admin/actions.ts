@@ -190,3 +190,58 @@ export async function openMonth(month: string) {
     revalidatePath('/super-admin')
     return { success: true }
   }
+
+
+interface ReportData {
+  users: any[]
+  mealCosts: any[]
+  bajarItems: any[]
+  commonExpenses: any[]
+  mealDeposits: any[]
+  dailyMeals: any[]
+  utilityCollections: any[]
+  utilityExpenses: any[]
+}
+
+export async function getMonthlyReportData(month: string): Promise<ReportData> {
+  const supabase = await createClient()
+  
+  // Calculate next month for range queries
+  const [year, monthNum] = month.split('-').map(Number)
+  const startDate = `${month}-01`
+  // Calculate end date (first day of next month)
+  const nextMonthDate = new Date(year, monthNum, 1) // monthNum is 1-based (Feb=2), Date(Y, 2, 1) is Mar 1.
+  const endDate = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}-01`
+
+  const [
+    usersResult,
+    mealCostsResult,
+    bajarItemsResult,
+    commonExpensesResult,
+    mealDepositsResult,
+    dailyMealsResult,
+    utilityCollectionsResult,
+    utilityExpensesResult
+  ] = await Promise.all([
+    supabase.from('users').select('*').order('name'),
+    supabase.from('meal_costs').select('*').gte('meal_date', startDate).lt('meal_date', endDate),
+    supabase.from('bajar_list').select('*, user:users(name)').gte('purchase_date', startDate).lt('purchase_date', endDate).order('purchase_date'),
+    supabase.from('common_expenses').select('*').gte('month', startDate).lt('month', endDate),
+    supabase.from('meal_deposits').select('*').eq('month', startDate),
+    supabase.from('daily_meals').select('*, meal_type:meal_types(weight)').gte('meal_date', startDate).lt('meal_date', endDate).order('meal_date'),
+    supabase.from('utility_collections').select('*').eq('month', startDate),
+    supabase.from('utility_expenses').select('*').eq('month', startDate)
+  ])
+
+  return {
+    users: usersResult.data || [],
+    mealCosts: mealCostsResult.data || [],
+    bajarItems: bajarItemsResult.data || [],
+    commonExpenses: commonExpensesResult.data || [],
+    mealDeposits: mealDepositsResult.data || [],
+    dailyMeals: dailyMealsResult.data || [],
+    utilityCollections: utilityCollectionsResult.data || [],
+    utilityExpenses: utilityExpensesResult.data || []
+  }
+}
+

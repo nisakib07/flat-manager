@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { closeMonth, openMonth } from './actions'
+import ReportGenerator from './ReportGenerator'
 
 // Helper component for the close button
 function MonthStatusAction({ month, isClosed, monthLabel }: { month: string, isClosed: boolean, monthLabel: string }) {
@@ -139,10 +140,13 @@ export default async function SuperAdminPage() {
         <Card>
             <CardHeader>
                 <CardTitle>System Overview</CardTitle>
-                <CardDescription>Quick stats for {prevMonthLabel}</CardDescription>
+                <CardDescription>Quick stats and reports for {prevMonthLabel}</CardDescription>
             </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground">Previous month data summary will appear here to help verify before closing.</p>
+            <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                   Generate comprehensive financial report for {prevMonthLabel}. Includes meal rates, total breakdown, and balances.
+                </p>
+                <ReportGenerator month={prevMonthStr} monthLabel={prevMonthLabel} />
             </CardContent>
         </Card>
       </div>

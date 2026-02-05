@@ -35,7 +35,7 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
     setLoading(null)
   }
 
-  const currentAdmin = users.find(u => u.role === 'admin' || u.role === 'super_admin')
+  const currentAdmin = users.find(u => u.role === 'super_admin') || users.find(u => u.role === 'admin')
 
   return (
     <div className="space-y-6 animate-fadeIn pb-10">
@@ -55,7 +55,7 @@ export default function UsersClient({ users, isAdmin, currentUserId }: UsersClie
              <div>
                 <h3 className="font-bold text-indigo-900 dark:text-indigo-100">Admin Role</h3>
                 <p className="text-sm mt-1 text-indigo-700 dark:text-indigo-300/80">
-                   Admins have full control over all features. Currently, <strong className="font-semibold text-indigo-950 dark:text-white">{currentAdmin?.name || 'No Admin'}</strong> is the Admin.
+                   Super Admin has full control over all features. Currently, <strong className="font-semibold text-indigo-950 dark:text-white">{currentAdmin?.name || 'No Admin'}</strong> is the Super Admin.
                 </p>
              </div>
           </div>

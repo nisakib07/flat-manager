@@ -3,6 +3,7 @@ import Link from 'next/link'
 import MealTableClient from './MealTableClient'
 import MealCalculation from './MealCalculation'
 import PersonalSummaryCard from './PersonalSummaryCard'
+import StaticMealList from './StaticMealList'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
@@ -146,6 +147,18 @@ export default async function DashboardPage({ searchParams }: Props) {
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-3 lg:gap-8">
         {/* Left Column - Meal Table (spans 2 cols on large screens) */}
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          {/* Summary Card for Non-Admins (Viewers) */}
+          {!isAdmin && (
+            <PersonalSummaryCard 
+              currentUserId={authUser?.id}
+              users={users || []}
+              mealCosts={monthlyMealCosts || []}
+              bajarItems={monthlyBajar || []}
+              commonExpenses={commonExpenses || []}
+              mealDeposits={mealDeposits || []}
+            />
+          )}
+
           {/* Meal Table - Admin Only */}
           {isAdmin && (
             <MealTableClient
@@ -171,14 +184,21 @@ export default async function DashboardPage({ searchParams }: Props) {
 
         {/* Right Column - Sidebar (stacks below on mobile) */}
         <div className="space-y-4 sm:space-y-6">
-          <PersonalSummaryCard 
-            currentUserId={authUser?.id}
-            users={users || []}
-            mealCosts={monthlyMealCosts || []}
-            bajarItems={monthlyBajar || []}
-            commonExpenses={commonExpenses || []}
-            mealDeposits={mealDeposits || []}
-          />
+
+          {/* Summary Card for Admins */}
+          {isAdmin && (
+            <PersonalSummaryCard 
+              currentUserId={authUser?.id}
+              users={users || []}
+              mealCosts={monthlyMealCosts || []}
+              bajarItems={monthlyBajar || []}
+              commonExpenses={commonExpenses || []}
+              mealDeposits={mealDeposits || []}
+            />
+          )}
+          
+          <StaticMealList />
+
 
           {/* Quick Actions - Admin Only */}
           {isAdmin && (
