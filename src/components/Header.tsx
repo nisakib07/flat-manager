@@ -3,18 +3,18 @@
 import { memo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signout } from '@/app/auth/actions'
 import type { User } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ModeToggle } from './mode-toggle'
+import SignOutButton from './SignOutButton'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog'
-import { Lock, LogOut, Shield } from 'lucide-react'
+import { Lock, Shield } from 'lucide-react'
 
 interface HeaderProps {
   user: User | null
@@ -123,12 +123,7 @@ function Header({ user }: HeaderProps) {
                   </Button>
                 </ChangePasswordDialog>
                 
-                <form action={signout}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start gap-2 font-normal text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer">
-                    <LogOut className="w-4 h-4" />
-                    Sign Out
-                  </Button>
-                </form>
+                <SignOutButton variant="header" />
               </div>
             </PopoverContent>
           </Popover>

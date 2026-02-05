@@ -3,8 +3,8 @@
 import { memo, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signout } from '@/app/auth/actions'
 import type { User } from '@/types/database'
+import SignOutButton from './SignOutButton'
 import {
   Sheet,
   SheetContent,
@@ -195,14 +195,7 @@ function MobileNav({ user }: MobileNavProps) {
                   </div>
 
                   <div className="mt-8">
-                    <form action={signout}>
-                      <Button variant="outline" className="w-full gap-2.5 h-14 text-base font-medium rounded-xl border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        Sign Out
-                      </Button>
-                    </form>
+                    <SignOutButton variant="mobile" />
                   </div>
                 </div>
               </SheetContent>
