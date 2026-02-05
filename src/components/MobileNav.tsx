@@ -138,14 +138,6 @@ function MobileNav({ user }: MobileNavProps) {
                     </div>
                     
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                      {user.role === 'super_admin' && (
-                        <Button variant="ghost" size="icon" title="Super Admin Dashboard" asChild>
-                          <Link href="/super-admin" onClick={handleClose}>
-                            <Shield className="w-5 h-5 text-red-600" />
-                          </Link>
-                        </Button>
-                      )}
-                      
                       <ChangePasswordDialog>
                         <Button variant="ghost" size="icon" title="Change Password">
                           <Lock className="w-5 h-5 text-muted-foreground" />
@@ -160,6 +152,24 @@ function MobileNav({ user }: MobileNavProps) {
 
                   {/* Grid Links */}
                   <div className="grid grid-cols-2 gap-4">
+                    {/* Super Admin Dashboard - Prominent Button */}
+                    {user.role === 'super_admin' && (
+                       <Link
+                        href="/super-admin"
+                        prefetch={true}
+                        onClick={handleClose}
+                        className="col-span-2 flex flex-row items-center justify-center gap-3 p-4 rounded-2xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 active:scale-95 transition-all"
+                      >
+                         <div className="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center shadow-md shadow-red-500/20">
+                            <Shield className="w-6 h-6" />
+                         </div>
+                         <div className="flex flex-col">
+                            <span className="font-bold text-base text-red-600 dark:text-red-400">Super Admin Dashboard</span>
+                            <span className="text-xs text-red-600/70 dark:text-red-400/70 font-medium">Manage reports & settings</span>
+                         </div>
+                      </Link>
+                    )}
+
                     {menuItems.map((item) => (
                       <Link
                         key={item.name}
