@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { login } from '../actions'
 import { Loader2, Home, Users, ShoppingCart, Zap } from 'lucide-react'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -16,7 +18,62 @@ export default function LoginPage() {
     if (result?.error) {
       setError(result.error)
       setLoading(false)
+    } else if (result?.success) {
+      // Show loading overlay and then redirect
+      router.push('/dashboard')
     }
+  }
+
+  // Full-screen loading overlay during redirect
+  if (loading && !error) {
+    return (
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center gap-6"
+        style={{
+          background: 'linear-gradient(135deg, hsl(176 80% 20%) 0%, hsl(176 70% 30%) 50%, hsl(200 60% 25%) 100%)'
+        }}
+      >
+        {/* Animated loader */}
+        <div className="relative">
+          <div 
+            className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl animate-pulse"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05))',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.2)'
+            }}
+          >
+            <Home className="w-10 h-10 text-white" />
+          </div>
+          {/* Spinning ring around the logo */}
+          <div 
+            className="absolute inset-0 rounded-2xl border-2 border-transparent border-t-teal-300 border-r-teal-300 animate-spin"
+            style={{ animationDuration: '1s' }}
+          />
+        </div>
+        
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Flat<span className="text-teal-300">Manager</span>
+          </h2>
+          <div className="flex items-center gap-2 text-white/80">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Taking you to your dashboard...</span>
+          </div>
+        </div>
+        
+        {/* Decorative dots */}
+        <div className="flex gap-2 mt-4">
+          {[0, 1, 2].map((i) => (
+            <div 
+              key={i}
+              className="w-2 h-2 rounded-full bg-teal-300 animate-bounce"
+              style={{ animationDelay: `${i * 0.15}s` }}
+            />
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
