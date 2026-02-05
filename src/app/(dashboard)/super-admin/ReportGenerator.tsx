@@ -50,39 +50,59 @@ export default function ReportGenerator({ month: initialMonth, monthLabel: initi
       setReportData(data)
       
       // 2. Wait for rendering
-      // We need a short delay to ensure React commits the DOM updates
-      // and the componentRef is populated with the new data.
       setTimeout(async () => {
-        const element = componentRef.current
-        if (!element) {
-          toast.error("Could not find report element")
-          setLoading(false)
-          return
+        try {
+            const element = componentRef.current
+            if (!element) {
+              toast.error("Error: Report element not found!")
+              setLoading(false)
+              return
+            }
+
+            // 3. Import html2pdf dynamically
+            
+            const html2pdfModule = await import('html2pdf.js')
+            const html2pdf = html2pdfModule.default as any
+            
+            console.log("html2pdf loaded:", html2pdf)
+
+            const opt = {
+              margin:       0,
+              filename:     `Banasree_Report_${selectedMonthLabel.replace(/ /g, '_')}.pdf`,
+              image:        { type: 'jpeg', quality: 0.98 },
+              html2canvas:  { 
+                scale: 2, 
+                useCORS: true, 
+                logging: false, // Disable logging to reduce noise
+                backgroundColor: '#ffffff', // Force white background to avoid transparency issues
+                onclone: (clonedDoc: any) => {
+                    // Force white background on body and generic font to avoid complex CSS var issues
+                    clonedDoc.body.style.backgroundColor = '#ffffff';
+                    clonedDoc.body.style.color = '#000000';
+                } 
+              }, 
+              jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+              pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            // 4. Generate PDF
+            console.log("Starting .save()...")
+            
+            await html2pdf().set(opt).from(element).save()
+            
+            console.log("PDF Saved.")
+            setLoading(false)
+            toast.success("PDF Downloaded successfully!")
+        } catch (innerError: any) {
+            console.error("Inner Error:", innerError)
+            toast.error("Error: " + innerError.message) // Simplified error message
+            setLoading(false)
         }
-
-        // 3. Import html2pdf dynamically (client-side only)
-        const html2pdfModule = await import('html2pdf.js')
-        const html2pdf = html2pdfModule.default as any
-
-        const opt = {
-          margin:       0,
-          filename:     `Banasree_Report_${selectedMonthLabel.replace(/ /g, '_')}.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true, logging: false },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-
-        // 4. Generate PDF
-        await html2pdf().set(opt).from(element).save()
-        
-        setLoading(false)
-        toast.success("PDF Downloaded successfully!")
-      }, 1000) // 1 second wait to be safe for images/rendering
+      }, 1500)
 
     } catch (error: any) {
       console.error(error)
-      toast.error('Failed to generate PDF: ' + error.message)
+      toast.error('Failed to fetch data: ' + error.message)
       setLoading(false)
     }
   }

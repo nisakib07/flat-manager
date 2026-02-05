@@ -419,8 +419,8 @@ export default function ShoppingClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {items.map((item) => (
-                    <tr key={item.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${editingItem?.id === item.id ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}>
+                  {items.map((item, index) => (
+                    <tr key={item.id} className={`transition-colors ${editingItem?.id === item.id ? "bg-blue-50 dark:bg-blue-900/20" : index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50/50 dark:bg-gray-800/30"} hover:bg-teal-50/50 dark:hover:bg-teal-900/20`}>
                       <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400 w-[120px]">{new Date(item.purchase_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                       <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-gray-100">{item.item_name}</td>
                       <td className="py-3 px-4">
@@ -460,18 +460,40 @@ export default function ShoppingClient({
             </div>
           </>
         ) : (
-          <div className="empty-state py-12 flex flex-col items-center justify-center text-center">
-            <svg className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No shopping items yet</h3>
-            <p className="text-gray-500 dark:text-gray-400 mt-1 mb-4">Start tracking your expenses</p>
+          <div className="py-16 flex flex-col items-center justify-center text-center">
+            {/* Animated Cart Icon */}
+            <div className="relative mb-6">
+              <div 
+                className="w-24 h-24 rounded-2xl flex items-center justify-center shadow-lg"
+                style={{
+                  background: 'linear-gradient(135deg, hsl(176 80% 92%), hsl(176 60% 85%))',
+                  animation: 'float 3s ease-in-out infinite'
+                }}
+              >
+                <svg className="w-12 h-12 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              {/* Decorative dots */}
+              <div className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-amber-400 animate-pulse" />
+              <div className="absolute -bottom-1 -left-3 w-3 h-3 rounded-full bg-teal-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
+            </div>
+            
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No shopping items yet</h3>
+            <p className="text-gray-500 dark:text-gray-400 max-w-xs mb-6">
+              Start tracking your grocery and shopping expenses to manage your budget better
+            </p>
+            
             {isAdmin && (
               <button 
                 onClick={openAddForm}
-                className="btn btn-primary"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-lg shadow-teal-500/25 hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                style={{ background: 'linear-gradient(135deg, hsl(176 80% 36%), hsl(176 70% 42%))' }}
               >
-                + Add First Item
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add First Item
               </button>
             )}
           </div>
