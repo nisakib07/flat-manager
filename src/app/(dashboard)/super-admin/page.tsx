@@ -150,6 +150,30 @@ export default async function SuperAdminPage() {
             </CardContent>
         </Card>
       </div>
+
+      <div className="mt-8 border-t pt-8">
+        <h2 className="text-xl font-bold text-red-600 mb-4">Danger Zone</h2>
+        <Card className="border-red-200 bg-red-50 dark:bg-red-900/10">
+            <CardHeader>
+                <CardTitle className="text-red-700 dark:text-red-400">Data Cleanup</CardTitle>
+                <CardDescription className="text-red-600/80 dark:text-red-400/80">
+                    Delete all transactional data (Meals, Shopping, Transfers) created after February 3rd, 2026.
+                    This action cannot be undone.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form action={async () => {
+                    'use server'
+                    const { deletePostFeb3Data } = await import('../actions')
+                    await deletePostFeb3Data()
+                }}>
+                    <Button variant="destructive">
+                        Delete Data After Feb 3, 2026
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

@@ -108,12 +108,12 @@ function Header({ user }: HeaderProps) {
               
               <div className="grid gap-1">
                 {user.role === 'super_admin' && (
-                  <Button variant="ghost" size="sm" asChild className="w-full justify-start gap-2 font-normal cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50">
-                    <Link href="/super-admin">
-                      <Shield className="w-4 h-4" />
-                      Super Admin
-                    </Link>
-                  </Button>
+                    <Button variant="ghost" size="sm" asChild className="w-full justify-start gap-2 font-normal cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50">
+                      <Link href="/super-admin">
+                        <Shield className="w-4 h-4" />
+                        Super Admin
+                      </Link>
+                    </Button>
                 )}
                 
                 <ChangePasswordDialog>

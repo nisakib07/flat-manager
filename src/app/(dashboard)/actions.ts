@@ -3,6 +3,30 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
+// Fire-and-forget activity logging helper
+async function logActivity(
+  action: string,
+  month: string,
+  details: Record<string, unknown>,
+  targetUserId?: string | null
+) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    await supabase.from('activity_logs').insert({
+      user_id: user.id,
+      action,
+      target_user_id: targetUserId || null,
+      details,
+      month
+    })
+  } catch {
+    // Silently fail - logging should never break the main operation
+  }
+}
+
 export async function addMealCost(formData: FormData) {
   const supabase = await createClient()
   
@@ -475,13 +499,15 @@ export async function updateDepositSlot(
 ) {
   const supabase = await createClient()
   
-  // Check if record exists
+  // Check if record exists and get old value for logging
   const { data: existing } = await supabase
     .from('meal_deposits')
-    .select('id')
+    .select('*')
     .eq('user_id', userId)
     .eq('month', month)
     .single()
+
+  const oldValue = existing ? (existing[field] || 0) : 0
 
   if (existing) {
     // Update specific field
@@ -503,6 +529,13 @@ export async function updateDepositSlot(
 
     if (error) return { error: error.message }
   }
+
+  // Log the deposit change (fire-and-forget)
+  logActivity('deposit_update', month, {
+    field,
+    old_value: oldValue,
+    new_value: value
+  }, userId)
 
   revalidatePath('/deposits')
   return { success: true }
@@ -859,6 +892,16 @@ export async function batchUpdateUtilities(updates: UtilityUpdate[]) {
     return { error: errors.join(', ') }
   }
 
+  // Log each utility change (fire-and-forget)
+  for (const update of updates) {
+    const action = update.type === 'collection' ? 'utility_collection_update' : 'utility_bill_update'
+    logActivity(action, update.month, {
+      utility: update.utilityType,
+      amount: update.amount,
+      type: update.type
+    }, update.userId || null)
+  }
+
   revalidatePath('/utilities')
   return { success: true }
 }
@@ -883,6 +926,49 @@ export async function addFundTransfer(formData: FormData) {
   }
 
   revalidatePath('/shopping')
+  revalidatePath('/super-admin/transfers')
+  return { success: true }
+}
+
+export async function updateFundTransfer(id: string, formData: FormData) {
+  const supabase = await createClient()
+  
+  const shopper_id = formData.get('shopper_id') as string
+  const amount = Number(formData.get('amount'))
+  const transfer_date = formData.get('transfer_date') as string
+
+  const { error } = await supabase
+    .from('fund_transfers')
+    .update({
+      shopper_id,
+      amount,
+      transfer_date
+    })
+    .eq('id', id)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/shopping')
+  revalidatePath('/super-admin/transfers')
+  return { success: true }
+}
+
+export async function deleteFundTransfer(id: string) {
+  const supabase = await createClient()
+  
+  const { error } = await supabase
+    .from('fund_transfers')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/shopping')
+  revalidatePath('/super-admin/transfers')
   return { success: true }
 }
 
@@ -928,5 +1014,26 @@ export async function batchUpdateDailyMeals(updates: MealUpdate[]) {
   }
 
   revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function deletePostFeb3Data() {
+  const supabase = await createClient()
+  const cutoffDate = '2026-02-03'
+  
+  // Verify super admin
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
+  
+  const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single()
+  if (userData?.role !== 'super_admin') return { error: 'Unauthorized' }
+
+  await supabase.from('fund_transfers').delete().gt('transfer_date', cutoffDate)
+  await supabase.from('bajar_list').delete().gt('purchase_date', cutoffDate)
+  await supabase.from('meal_costs').delete().gt('meal_date', cutoffDate)
+  
+  revalidatePath('/dashboard')
+  revalidatePath('/super-admin')
+  revalidatePath('/shopping')
   return { success: true }
 }

@@ -4,7 +4,7 @@ import { useState, useTransition, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { updateDepositSlot } from '../actions'
-import type { User, MealDeposit } from '@/types/database'
+import type { User, MealDeposit, ActivityLog } from '@/types/database'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import {
   Table,
@@ -35,6 +35,7 @@ interface DepositsClientProps {
   isAdmin: boolean
   currentUserId: string
   selectedMonth: string
+  activityLog: (ActivityLog & { actor?: { name: string } | null; target?: { name: string } | null })[]
 }
 
 type DepositField = 'd1' | 'd2' | 'd3' | 'd4' | 'd5' | 'd6' | 'd7' | 'd8' | 'carry_forward'
@@ -48,8 +49,11 @@ interface DepositUpdate {
 // Quick preset amounts
 const QUICK_AMOUNTS = [1000, 2000, 3000, 5000]
 
-export default function DepositsClient({ users, deposits, isAdmin, currentUserId, selectedMonth }: DepositsClientProps) {
+export default function DepositsClient({ users, deposits, isAdmin, currentUserId, selectedMonth, activityLog }: DepositsClientProps) {
   const [isPending, startTransition] = useTransition()
+  
+  // Activity log popup state
+  const [showActivityLog, setShowActivityLog] = useState(false)
   
   // Batch save pattern - track local edits
   const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({})
@@ -198,21 +202,34 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
     return users.reduce((sum, user) => sum + getRowTotal(user.id), 0)
   }
 
-  return (
+   return (
     <div className="space-y-4 animate-fadeIn pb-20">
-      {/* Header - Unified Layout */}
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">💰 Deposits</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Meal deposits</p>
+      {/* Header */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">💰 Deposits</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Meal deposits</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowActivityLog(true)}
+              className="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium flex items-center gap-1.5 transition-colors border border-slate-200 dark:border-slate-700"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Log
+            </button>
+            <MonthSelector selectedMonth={selectedMonth} />
+          </div>
         </div>
-        <MonthSelector selectedMonth={selectedMonth} />
-      </div>
-      
-      {/* Total Collected Badge */}
-      <div className="flex items-center gap-3 bg-teal-50 dark:bg-teal-900/30 px-4 py-2.5 rounded-lg border border-teal-100 dark:border-teal-800">
-        <span className="text-sm font-medium text-teal-700 dark:text-teal-300">Total Collected</span>
-        <span className="text-lg font-black text-teal-900 dark:text-teal-100">৳{getTotalDeposits().toLocaleString()}</span>
+        
+        {/* Total Collected Badge */}
+        <div className="flex items-center justify-between bg-teal-50 dark:bg-teal-900/30 px-4 py-2.5 rounded-xl border border-teal-100 dark:border-teal-800">
+          <span className="text-sm font-medium text-teal-700 dark:text-teal-300">Total Collected</span>
+          <span className="text-lg font-black text-teal-900 dark:text-teal-100">৳{getTotalDeposits().toLocaleString()}</span>
+        </div>
       </div>
 
       <Card className="shadow-md border-teal-100 dark:border-teal-900/50 bg-transparent sm:bg-card border-none sm:border">
@@ -468,6 +485,69 @@ export default function DepositsClient({ users, deposits, isAdmin, currentUserId
           </div>
         </div>
       )}
+
+      {/* Activity Log Popup */}
+      <Sheet open={showActivityLog} onOpenChange={setShowActivityLog}>
+        <SheetContent side="responsive" className="h-[90vh] sm:h-auto sm:max-w-lg overflow-hidden flex flex-col">
+          <SheetHeader className="pb-3 border-b border-border/50 flex-shrink-0">
+            <SheetTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-base font-bold">
+                <span className="w-7 h-7 rounded-lg bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-sm">📋</span>
+                Activity Log
+              </span>
+              <Badge variant="secondary" className="text-[11px] font-medium">
+                {activityLog.length} entries
+              </Badge>
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto mt-3 space-y-2 pb-4">
+            {activityLog.length > 0 ? (
+              activityLog.map((log) => {
+                const details = log.details as Record<string, unknown>
+                const field = String(details.field || '').toUpperCase()
+                const oldVal = Number(details.old_value || 0)
+                const newVal = Number(details.new_value || 0)
+                
+                return (
+                  <div key={log.id} className="p-3 rounded-xl bg-muted/40 border border-border/40 space-y-2">
+                    {/* Who → For whom */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <span className="font-semibold">{log.actor?.name || 'Unknown'}</span>
+                        <span className="text-muted-foreground">→</span>
+                        <span className="font-medium text-teal-700 dark:text-teal-400">{log.target?.name || 'Unknown'}</span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono h-5">{field}</Badge>
+                    </div>
+                    {/* Value change + timestamp */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground tabular-nums">৳{oldVal.toLocaleString()}</span>
+                        <svg className="w-3.5 h-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                        <span className={cn("text-sm font-bold tabular-nums", newVal > oldVal ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400")}>
+                          ৳{newVal.toLocaleString()}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">
+                        {new Date(log.created_at).toLocaleString('en-US', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4 text-2xl">📋</div>
+                <p className="text-sm font-medium text-muted-foreground">No activity recorded yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Changes will appear here when deposits are updated</p>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

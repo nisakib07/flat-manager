@@ -21,7 +21,7 @@ export default async function UtilitiesPage({ searchParams }: UtilitiesPageProps
   const selectedMonthStr = params.month || defaultMonth
 
   // Parallel queries for faster loading
-  const [currentUserResult, usersResult, collectionsResult, expensesResult] = await Promise.all([
+  const [currentUserResult, usersResult, collectionsResult, expensesResult, activityLogsResult] = await Promise.all([
     supabase
       .from('users')
       .select('role')
@@ -41,13 +41,27 @@ export default async function UtilitiesPage({ searchParams }: UtilitiesPageProps
     supabase
       .from('utility_expenses')
       .select('*')
+      .eq('month', selectedMonthStr),
+
+    supabase
+      .from('activity_logs')
+      .select('*, actor:users!user_id(name), target:users!target_user_id(name)')
       .eq('month', selectedMonthStr)
+      .in('action', ['utility_collection_update', 'utility_bill_update'])
+      .order('created_at', { ascending: false })
+      .limit(100)
    ])
   
   const isAdmin = currentUserResult.data?.role === 'admin' || currentUserResult.data?.role === 'super_admin'
   const users = usersResult.data
   const utilityCollections = collectionsResult.data
   const utilityExpenses = expensesResult.data
+
+  const activityLog = activityLogsResult.data?.map(log => ({
+    ...log,
+    actor: Array.isArray(log.actor) ? log.actor[0] : log.actor,
+    target: Array.isArray(log.target) ? log.target[0] : log.target
+  })) || []
 
   return (
     <UtilityGrid 
@@ -56,6 +70,7 @@ export default async function UtilitiesPage({ searchParams }: UtilitiesPageProps
       utilityExpenses={utilityExpenses || []}
       isAdmin={isAdmin}
       selectedMonth={selectedMonthStr}
+      activityLog={activityLog}
     />
   )
 }

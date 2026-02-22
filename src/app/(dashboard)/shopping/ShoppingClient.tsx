@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { addBajarItem, deleteBajarItem, updateBajarItem, addFundTransfer } from '../actions'
+import { addBajarItem, deleteBajarItem, updateBajarItem, addFundTransfer, updateFundTransfer, deleteFundTransfer } from '../actions'
 import { useRef } from 'react'
 import MonthSelector from '@/components/MonthSelector'
-import type { User, BajarItem } from '@/types/database'
+import type { User, BajarItem, FundTransfer } from '@/types/database'
 import {
   Sheet,
   SheetContent,
@@ -21,6 +21,7 @@ interface ShoppingClientProps {
   shopperBalances: Record<string, number>
   currentUserId: string
   selectedMonth: string
+  transferLog: (FundTransfer & { shopper?: { name: string } | null })[]
 }
 
 export default function ShoppingClient({ 
@@ -30,7 +31,8 @@ export default function ShoppingClient({
   managerBalance, 
   shopperBalances, 
   currentUserId,
-  selectedMonth
+  selectedMonth,
+  transferLog: initialTransferLog
 }: ShoppingClientProps) {
   const [showForm, setShowForm] = useState(false)
   const [showTransferForm, setShowTransferForm] = useState(false)
@@ -40,6 +42,75 @@ export default function ShoppingClient({
   const [transferType, setTransferType] = useState<'give' | 'return'>('give')
   const [viewShopperId, setViewShopperId] = useState<string>(currentUserId)
   const [paymentPreference, setPaymentPreference] = useState<'deposit' | 'payback'>('deposit')
+  const [transferDate, setTransferDate] = useState(new Date().toISOString().split('T')[0])
+
+  // Transfer log popup state
+  const [showTransferLog, setShowTransferLog] = useState(false)
+  const [transfers, setTransfers] = useState(initialTransferLog)
+  const [editingTransfer, setEditingTransfer] = useState<(FundTransfer & { shopper?: { name: string } | null }) | null>(null)
+  const [showEditTransfer, setShowEditTransfer] = useState(false)
+  const [editTransferType, setEditTransferType] = useState<'give' | 'return'>('give')
+  const [transferLoading, setTransferLoading] = useState(false)
+
+  useEffect(() => {
+    if (selectedMonth) {
+       const now = new Date()
+       const selected = new Date(selectedMonth)
+       const isCurrentMonth = now.getMonth() === selected.getMonth() && now.getFullYear() === selected.getFullYear()
+       
+       if (isCurrentMonth) {
+         setTransferDate(new Date().toISOString().split('T')[0])
+       } else {
+         setTransferDate(selectedMonth)
+       }
+    }
+  }, [selectedMonth])
+
+  // Keep transfers in sync when prop changes (e.g. after revalidation)
+  useEffect(() => {
+    setTransfers(initialTransferLog)
+  }, [initialTransferLog])
+
+  // Transfer log handlers
+  async function handleTransferUpdate(formData: FormData) {
+    if (!editingTransfer) return
+    setTransferLoading(true)
+    
+    if (editTransferType === 'return') {
+      const amount = Number(formData.get('amount'))
+      formData.set('amount', String(-Math.abs(amount)))
+    } else {
+      const amount = Number(formData.get('amount'))
+      formData.set('amount', String(Math.abs(amount)))
+    }
+
+    const result = await updateFundTransfer(editingTransfer.id, formData)
+    if (result?.error) {
+      toast.error(result.error)
+    } else {
+      toast.success('Transfer updated!')
+      setShowEditTransfer(false)
+      setEditingTransfer(null)
+    }
+    setTransferLoading(false)
+  }
+
+  async function handleTransferDelete(id: string) {
+    if (!confirm('Are you sure you want to delete this transfer? This will affect balances.')) return
+    const result = await deleteFundTransfer(id)
+    if (result?.error) {
+      toast.error(result.error)
+    } else {
+      toast.success('Transfer deleted!')
+      setTransfers(prev => prev.filter(t => t.id !== id))
+    }
+  }
+
+  function startEditTransfer(transfer: FundTransfer & { shopper?: { name: string } | null }) {
+    setEditingTransfer(transfer)
+    setEditTransferType(transfer.amount >= 0 ? 'give' : 'return')
+    setShowEditTransfer(true)
+  }
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -148,6 +219,12 @@ export default function ShoppingClient({
             className="btn bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2 px-3"
           >
             💸 Transfer
+          </button>
+          <button
+            onClick={() => setShowTransferLog(true)}
+            className="btn bg-slate-600 hover:bg-slate-700 text-white text-sm py-2 px-3"
+          >
+            📋 Log ({transfers.length})
           </button>
           <button 
             onClick={() => {
@@ -265,8 +342,18 @@ export default function ShoppingClient({
                   />
               </div>
 
-              <div className="hidden">
-                    <input type="date" name="transfer_date" defaultValue={today} />
+              <div>
+                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Date
+                    </label>
+                    <input 
+                        type="date" 
+                        name="transfer_date" 
+                        defaultValue={transferDate}
+                        key={transferDate}
+                        required
+                        className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    />
               </div>
             </div>
             
@@ -512,6 +599,174 @@ export default function ShoppingClient({
           </svg>
         </button>
       )}
+      {/* Transfer Log Popup */}
+      <Sheet open={showTransferLog} onOpenChange={setShowTransferLog}>
+        <SheetContent side="responsive" className="h-[90vh] sm:h-auto sm:max-w-lg overflow-hidden flex flex-col">
+          <SheetHeader className="pb-3 border-b border-border/50 flex-shrink-0">
+            <SheetTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-base font-bold">
+                <span className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-sm">📋</span>
+                Transfer Log
+              </span>
+              <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                {transfers.length} transfers
+              </span>
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto mt-3 space-y-2 pb-4">
+            {transfers.length > 0 ? (
+              transfers.map((transfer) => (
+                <div key={transfer.id} className="p-3 rounded-xl bg-muted/40 border border-border/40 space-y-2">
+                  {/* Row 1: Shopper + Type badge */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">{transfer.shopper?.name || 'Unknown'}</span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        transfer.amount >= 0
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      }`}>
+                        {transfer.amount >= 0 ? 'Given' : 'Returned'}
+                      </span>
+                    </div>
+                    {/* Actions */}
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        onClick={() => startEditTransfer(transfer)}
+                        className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors"
+                        title="Edit"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleTransferDelete(transfer.id)}
+                        className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+                        title="Delete"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  {/* Row 2: Amount + Date */}
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-bold tabular-nums ${
+                      transfer.amount >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                    }`}>
+                      {transfer.amount >= 0 ? '-' : '+'}{Math.abs(transfer.amount).toLocaleString()} ৳
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {new Date(transfer.transfer_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
+                  <svg className="w-7 h-7 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </div>
+                <h3 className="font-semibold text-foreground mb-1">No transfers yet</h3>
+                <p className="text-sm text-muted-foreground">Fund transfers for this month will appear here</p>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Transfer Sheet */}
+      <Sheet open={showEditTransfer} onOpenChange={setShowEditTransfer}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Edit Transfer</SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-6">
+            <div className="flex bg-muted/50 p-1 rounded-lg mb-6">
+              <button
+                type="button"
+                onClick={() => setEditTransferType('give')}
+                className={`flex-1 text-sm font-medium py-2 rounded-md transition-all ${editTransferType === 'give' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600' : 'text-muted-foreground hover:bg-white/50'}`}
+              >
+                To Shopper →
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditTransferType('return')}
+                className={`flex-1 text-sm font-medium py-2 rounded-md transition-all ${editTransferType === 'return' ? 'bg-white dark:bg-gray-800 shadow text-amber-600' : 'text-muted-foreground hover:bg-white/50'}`}
+              >
+                Return ←
+              </button>
+            </div>
+
+            <form action={handleTransferUpdate} className="space-y-4">
+              <div className="grid gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    Shopper
+                  </label>
+                  <select
+                    name="shopper_id"
+                    required
+                    defaultValue={editingTransfer?.shopper_id}
+                    className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  >
+                    <option value="">Select Member</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    Amount (৳)
+                  </label>
+                  <input
+                    type="number"
+                    name="amount"
+                    min="1"
+                    defaultValue={editingTransfer ? Math.abs(editingTransfer.amount) : ''}
+                    placeholder="e.g. 500"
+                    required
+                    className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    name="transfer_date"
+                    defaultValue={editingTransfer?.transfer_date}
+                    required
+                    className="w-full p-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button type="submit" className={`btn flex-1 text-white border-none ${editTransferType === 'give' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-amber-600 hover:bg-amber-700'}`} disabled={transferLoading}>
+                  {transferLoading ? 'Updating...' : 'Save Changes'}
+                </button>
+                <button type="button" onClick={() => setShowEditTransfer(false)} className="btn flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300 border-none">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

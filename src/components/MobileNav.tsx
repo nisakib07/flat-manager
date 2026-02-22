@@ -158,15 +158,12 @@ function MobileNav({ user }: MobileNavProps) {
                         href="/super-admin"
                         prefetch={true}
                         onClick={handleClose}
-                        className="col-span-2 flex flex-row items-center justify-center gap-3 p-4 rounded-2xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 active:scale-95 transition-all"
+                        className="col-span-1 flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 active:scale-95 transition-all text-center"
                       >
-                         <div className="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center shadow-md shadow-red-500/20">
-                            <Shield className="w-6 h-6" />
+                         <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shadow-md shadow-red-500/20">
+                            <Shield className="w-5 h-5" />
                          </div>
-                         <div className="flex flex-col">
-                            <span className="font-bold text-base text-red-600 dark:text-red-400">Super Admin Dashboard</span>
-                            <span className="text-xs text-red-600/70 dark:text-red-400/70 font-medium">Manage reports & settings</span>
-                         </div>
+                         <span className="font-bold text-xs text-red-600 dark:text-red-400">Super Admin</span>
                       </Link>
                     )}
 

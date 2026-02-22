@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import ShoppingClient from './ShoppingClient'
 
 // Extended caching - 5 minutes for instant tab switching
-export const revalidate = 300
+// export const revalidate = 300 // Commented out to fix update issues
 
 interface ShoppingPageProps {
   searchParams: Promise<{ month?: string }>
@@ -32,7 +32,8 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
     transfersResult, 
     monthlyShoppingResult,
     commonExpensesResult,
-    monthStatusResult
+    monthStatusResult,
+    transferDetailsResult
   ] = await Promise.all([
     supabase
       .from('users')
@@ -100,7 +101,16 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
       .from('month_status')
       .select('is_closed')
       .eq('month', currentMonth.substring(0, 7)) // YYYY-MM
-      .single()
+      .single(),
+
+    // Fetch detailed transfers with shopper names for transfer log popup
+    supabase
+      .from('fund_transfers')
+      .select('*, shopper:users!shopper_id(name)')
+      .gte('transfer_date', currentMonthDate)
+      .lt('transfer_date', new Date(new Date(currentMonthDate).setMonth(new Date(currentMonthDate).getMonth() + 1)).toISOString().split('T')[0])
+      .order('transfer_date', { ascending: false })
+      .order('created_at', { ascending: false })
   ])
   
   const monthStatus = monthStatusResult.data
@@ -135,11 +145,45 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
   const shopperBalances: Record<string, number> = {}
   users?.forEach(u => shopperBalances[u.id] = 0)
   
+  /* console.log('Transfers found:', transfersResult.data?.length, transfersResult.data) */
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logPath = path.join(process.cwd(), 'transfer_page_debug.log');
+    fs.appendFileSync(logPath, JSON.stringify({ 
+      timestamp: new Date().toISOString(),
+      step: 'fetching',
+      transfersCount: transfersResult.data?.length,
+      transfers: transfersResult.data,
+      allUsers: users?.map(u => ({id: u.id, name: u.name}))
+    }) + '\n');
+  } catch (err) {}
+  
   transfersResult.data?.forEach(t => {
     if (shopperBalances[t.shopper_id] !== undefined) {
       shopperBalances[t.shopper_id] += Number(t.amount)
+    } else {
+        // console.log('Shopper ID not found in users map:', t.shopper_id)
+         try {
+            const fs = require('fs');
+            const path = require('path');
+            const logPath = path.join(process.cwd(), 'transfer_page_debug.log');
+            fs.appendFileSync(logPath, `Shopper ID not found in balance map: ${t.shopper_id}\n`);
+        } catch (e) {}
     }
   })
+  
+  /* console.log('Shopper balances after transfers:', JSON.stringify(shopperBalances)) */
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logPath = path.join(process.cwd(), 'transfer_page_debug.log');
+    fs.appendFileSync(logPath, JSON.stringify({ 
+      timestamp: new Date().toISOString(),
+      step: 'balances_after_transfers',
+      balances: shopperBalances
+    }) + '\n');
+  } catch (err) {}
   
   monthlyShoppingResult.data?.forEach(s => {
     if (shopperBalances[s.user_id] !== undefined) {
@@ -169,6 +213,12 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
   const managerBalance = (utilityRemaining + totalRawDeposits) - (totalShopping + totalShopperHas + totalPaybackOwed)
 
 
+  // Format transfer details for the log popup
+  const transferLog = transferDetailsResult.data?.map(t => ({
+    ...t,
+    shopper: Array.isArray(t.shopper) ? t.shopper[0] : t.shopper
+  })) || []
+
   return (
     <ShoppingClient 
       users={users || []} 
@@ -178,6 +228,7 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
       shopperBalances={shopperBalances}
       currentUserId={authUser?.id || ''}
       selectedMonth={currentMonth}
+      transferLog={transferLog}
     />
   )
 }

@@ -121,6 +121,16 @@ export interface MonthStatus {
   closed_by: string | null
 }
 
+export interface ActivityLog {
+  id: string
+  user_id: string
+  action: string
+  target_user_id: string | null
+  details: Record<string, unknown>
+  month: string
+  created_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -173,6 +183,11 @@ export interface Database {
         Row: MonthStatus
         Insert: MonthStatus
         Update: Partial<MonthStatus>
+      }
+      activity_logs: {
+        Row: ActivityLog
+        Insert: Omit<ActivityLog, 'id' | 'created_at'>
+        Update: Partial<Omit<ActivityLog, 'id' | 'created_at'>>
       }
     }
   }
