@@ -54,8 +54,8 @@ export async function closeMonth(month: string) {
     supabase.from('users').select('*'),
     supabase.from('meal_costs').select('*').gte('meal_date', startDate).lt('meal_date', endDate),
     supabase.from('bajar_list').select('*').gte('purchase_date', startDate).lt('purchase_date', endDate),
-    supabase.from('common_expenses').select('*').eq('month', month),
-    supabase.from('meal_deposits').select('*').eq('month', month)
+    supabase.from('common_expenses').select('*').eq('month', startDate),
+    supabase.from('meal_deposits').select('*').eq('month', startDate)
   ])
 
   if (!users || !mealCosts || !bajarItems || !commonExpenses || !mealDeposits) {
@@ -94,55 +94,17 @@ export async function closeMonth(month: string) {
 
     return {
       user_id: u.id,
-      month: nextMonthStr,
+      month: `${nextMonthStr}-01`,
       carry_forward: balance, /* Insert balance as carry_forward for next month */
-      // Initialize other fields if new row
-      d1: 0, d2: 0, d3: 0, d4: 0, d5: 0, d6: 0, d7: 0, d8: 0
     }
   })
 
   // 3. Update Status and Carry Forward
   
-  // Transaction-like update: if one fails, we might have issues, but Supabase doesn't support complex transactions via JS client easily.
-  // We will do them sequentially.
-
-  // A. Upsert next month's deposits (Carry Forward)
-  const { error: depositError } = await supabase
-    .from('meal_deposits')
-    .upsert(nextMonthDeposits, { onConflict: 'user_id, month' }) 
-    // Note: onConflict should match the unique constraint. 
-    // Assuming unique constraint on (user_id, month).
-    // CAUTION: This overwrites existing CF if next month already has data. 
-    // BUT we usually only close a month once. And if we re-close, we WANT to update the CF.
-    // However, we should be careful NOT to wipe out d1-d8 if they already exist for next month?
-    // .upsert with ignoreDuplicates: false (default) updates the row.
-    // We only want to update `carry_forward`. 
-    // We should probably iterate and checks if we can just update `carry_forward` if row exists?
-    // Or simpler: Upsert is fine, but we passed d1:0... if row exists, this might overwrite d1 with 0?
-    // YES. Upsert replaces the row or updates fields provided.
-    // If next month ALREADY has deposits (unlikely if we stick to flexible flow, but possible), we shouldn't wipe them.
-    
-    // Better strategy:
-    // For each user, trigger an explicit UPSERT that preserves other columns if possible, 
-    // OR just upsert { user_id, month, carry_forward }.
-    // If I upsert ONLY those fields, Supabase (Postgres) will usually default others (0) on INSERT, 
-    // or keep them on UPDATE?
-    // Postgres ON CONFLICT DO UPDATE SET ...
-    // The JS client `upsert({ user_id, month, carry_forward })` will:
-    // 1. Try INSERT. If defaults are set for d1..d8 (likely 0 or null), it works.
-    // 2. If CONFLICT, it UPDATES the columns provided.
-    // So if I ONLY provide `carry_forward`, it should be safe for existing rows too!
-    
-  // Refined nextMonthDeposits for safety
-  const safeNextMonthDeposits = nextMonthDeposits.map(({ user_id, month, carry_forward }) => ({
-    user_id, 
-    month, 
-    carry_forward
-  }))
-
+  // Upsert only carry_forward to avoid overwriting existing d1-d8 deposit slots
   const { error: cfError } = await supabase
     .from('meal_deposits')
-    .upsert(safeNextMonthDeposits, { onConflict: 'user_id, month' })
+    .upsert(nextMonthDeposits, { onConflict: 'user_id, month' })
 
   if (cfError) {
       throw new Error(`Failed to update carry forward: ${cfError.message}`)
